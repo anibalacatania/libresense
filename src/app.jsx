@@ -186,7 +186,8 @@ function PanelApp() {
       <Tarjeta>
         <div className="text-center mb-6">
           <div className="w-14 h-14 mx-auto text-purple-600 mb-3"><Wine/></div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-1">Análisis Sensorial</h1>
+          <h1 className="text-3xl font-bold text-gray-800 mb-1">LibreSense</h1>
+          <p className="text-sm text-purple-600 font-semibold -mt-1 mb-1">Análisis sensorial</p>
           <p className="text-gray-600">Elegí el estudio</p>
         </div>
         {!estudios.length
@@ -1074,7 +1075,7 @@ function AdminApp() {
       <Tarjeta>
         <div className="text-center mb-6">
           <div className="w-12 h-12 mx-auto text-purple-600 mb-3"><Lock/></div>
-          <h1 className="text-2xl font-bold text-gray-800">Administración</h1>
+          <h1 className="text-2xl font-bold text-gray-800">LibreSense <span className="text-base font-normal text-gray-500">· Administración</span></h1>
           <p className="text-gray-600 text-sm">Entrá con tu cuenta de Google</p>
         </div>
         <button onClick={entrar} className="w-full bg-white border-2 border-gray-300 hover:border-purple-500 text-gray-800 font-bold py-3 rounded-lg flex items-center justify-center gap-2">
@@ -1114,7 +1115,7 @@ function AdminApp() {
     <div className="min-h-screen py-6 px-4">
       <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-2xl p-5 sm:p-7 print-area">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5 no-print">
-          <h1 className="text-2xl font-bold text-gray-800 cursor-pointer" onClick={() => setVista({ tipo: 'lista' })}>Administración</h1>
+          <h1 className="text-2xl font-bold text-gray-800 cursor-pointer" onClick={() => setVista({ tipo: 'lista' })}>LibreSense <span className="text-base font-normal text-gray-500">· Administración</span></h1>
           <div className="flex gap-3 items-center text-sm">
             <button onClick={() => setVista({ tipo: 'lista' })} className={vista.tipo === 'lista' ? 'font-bold text-purple-700' : 'text-purple-700 hover:underline'}>Estudios</button>
             <button onClick={() => setVista({ tipo: 'admins' })} className={vista.tipo === 'admins' ? 'font-bold text-purple-700' : 'text-purple-700 hover:underline'}>Administradores</button>

@@ -1,11 +1,13 @@
-# Panel Sensorial (Firebase)
+# LibreSense
+
+App web gratuita para análisis sensorial (antes "panel").
 
 App web para análisis sensorial con **varios estudios a la vez**, sesiones, repeticiones y diseño de Williams.
 Técnicas: **Análisis Descriptivo Cuantitativo** (escala 0–10), **RATA** (Rate-All-That-Apply), **Perfil Flash** y **Napping** (mapeo proyectivo).
 Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pages.
 
-- **Panelistas:** https://anibalacatania.github.io/panel/
-- **Administración:** https://anibalacatania.github.io/panel/#admin (entrar con cuenta de Google)
+- **Panelistas:** https://anibalacatania.github.io/libresense/
+- **Administración:** https://anibalacatania.github.io/libresense/#admin (entrar con cuenta de Google)
 - **Consola de Firebase:** proyecto `panel-sensorial` (plan gratuito Spark, base de datos en São Paulo)
 
 ## Cómo se usa

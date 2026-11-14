@@ -1,10 +1,10 @@
 # Perfil Flash · análisis completo (Shiny)
 
-App Shiny que acompaña a la app **panel** (https://anibalacatania.github.io/panel/). Analiza los estudios de
+App Shiny que acompaña a la app **LibreSense** (https://anibalacatania.github.io/libresense/). Analiza los estudios de
 Perfil Flash con FactoMineR y SensoMineR, siguiendo a Delarue (2015, cap. 7 de *Novel Techniques in Sensory
 Characterization and Consumer Profiling*).
 
-Se publica en **https://acatania.shinyapps.io/perfilflash/** (dirección configurada en `config.json` de la app panel).
+Se publica en **https://acatania.shinyapps.io/perfilflash/** (dirección configurada en `config.json` de la app LibreSense).
 
 ## Qué muestra
 - **Datos:** vinos, panelistas, descriptores de cada uno (con su definición), control de suma de rangos p(p+1)/2.
@@ -19,7 +19,7 @@ Se publica en **https://acatania.shinyapps.io/perfilflash/** (dirección configu
 ## Cómo llegan los datos
 1. En la administración de un estudio de Perfil Flash, botón **“Análisis completo en R (Shiny) ↗”**.
 2. Se abre esta app; cuando arranca, avisa a la ventana que la abrió.
-3. La app panel le responde **solo a este sitio** con el token de la sesión del administrador (vale 1 hora y se
+3. La app LibreSense le responde **solo a este sitio** con el token de la sesión del administrador (vale 1 hora y se
    renueva cada 45 minutos mientras la ventana siga abierta).
 4. Shiny lee el estudio de Firestore con ese token: se aplican las mismas reglas de seguridad que en la app.
    No hay claves guardadas en shinyapps.io; si alguien abre el link directamente, no ve datos.

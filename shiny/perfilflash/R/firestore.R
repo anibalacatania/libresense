@@ -1,5 +1,5 @@
 # Lectura de un estudio de Perfil Flash desde Firestore (API REST), con el token de la sesión
-# del administrador que la app "panel" le pasa a Shiny. Las reglas de seguridad de Firebase se
+# del administrador que la app "LibreSense" le pasa a Shiny. Las reglas de seguridad de Firebase se
 # aplican igual que en la app: sin un token de administrador no se puede leer nada privado.
 
 fs_base <- function(proyecto) {

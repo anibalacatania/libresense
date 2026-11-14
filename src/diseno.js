@@ -1,5 +1,5 @@
 // Generador de diseño: repeticiones repartidas en sesiones + cuadrado de Williams por sesión.
-// (Mismo algoritmo que la app "panel", verificado con 2.496 combinaciones.)
+// (Mismo algoritmo que la app anterior (Google Sheets), verificado con 2.496 combinaciones.)
 
 export function ordenNatural(a, b) { return String(a).localeCompare(String(b), undefined, { numeric: true }); }
 

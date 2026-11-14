@@ -1,4 +1,4 @@
-// Conexión con la app "panel": la administración abre esta app y le pasa la sesión del administrador
+// Conexión con la app "LibreSense": la administración abre esta app y le pasa la sesión del administrador
 // (token de Firebase, válido 1 hora y renovado por la app) con postMessage.
 // Solo se aceptan mensajes del sitio de la app; el aviso "listo" no lleva datos.
 (function () {

@@ -1,6 +1,6 @@
 # =====================================================================================
 # Perfil Flash · Análisis completo
-# App Shiny que acompaña a la app "panel" (https://anibalacatania.github.io/panel/).
+# App Shiny que acompaña a la app "LibreSense" (https://anibalacatania.github.io/libresense/).
 # Se abre desde la administración de un estudio de Perfil Flash ("Análisis completo en R"),
 # o se usa sola subiendo la matriz / el formato largo que descarga la app.
 #
