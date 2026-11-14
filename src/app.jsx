@@ -581,7 +581,7 @@ const textoLinea = (muestras, grupos) => {
 
 function SesionFlash({ eid, estudio, valuador, sesion, muestras: muestras0, previos, pendientes, cerrado, setCerrado, alTerminar, salir }) {
   const muestras = useMemo(() => [...muestras0].sort((a, b) => String(a.CodigoProducto).localeCompare(String(b.CodigoProducto))), [muestras0]);
-  const clave = `pf_flash2_${eid}_${valuador}_${sesion.Sesion}`;
+  const clave = `pf_flash2_${eid}_${estudio.reinicio || 0}_${valuador}_${sesion.Sesion}`;
   const [st, setSt] = useState(() => LS.get(clave, null) || {
     paso: 'desc', i: 0, orden: {},
     atributos: (previos || []).map(n => ({ n, def: '', izq: '', der: '' })),
@@ -878,7 +878,7 @@ function SesionNapping({ eid, estudio, valuador, sesion, muestras, pendientes, c
   const H = HOJAS[cfg.hoja] || HOJAS.rect;
   const tareas = cfg.tareas && cfg.tareas.length ? cfg.tareas : ['Global'];
   const conPalabras = cfg.palabras !== 'no';
-  const clave = `pf_nap_${eid}_${valuador}_${sesion.Sesion}`;
+  const clave = `pf_nap_${eid}_${estudio.reinicio || 0}_${valuador}_${sesion.Sesion}`;
   const [st, setSt] = useState(() => LS.get(clave, null) || { t: 0, paso: 'mapa', pos: {}, pal: {} });
   const [aviso, setAviso] = useState('');
   const [nueva, setNueva] = useState({});
@@ -2218,6 +2218,11 @@ function Configuracion({ eid, est, recargar, borrado }) {
   const [confirmaTxt, setConfirmaTxt] = useState('');
   const [msg, setMsg] = useState(null);
   const [copiado, setCopiado] = useState(false);
+  const [nResp, setNResp] = useState(null);
+  const [borrarPaso, setBorrarPaso] = useState(0);   // 0 = botón; 1 = pidiendo confirmación
+  const [confirmaBorrar, setConfirmaBorrar] = useState('');
+  const [borrando, setBorrando] = useState(false);
+  useEffect(() => { datos.contarRespuestas(eid).then(setNResp).catch(() => {}); }, [eid, borrarPaso]);
   const link = `${urlBase()}?e=${eid}`;
   const hacer = async (fn, ok) => { setMsg(null); try { await fn(); setMsg({ t: 'ok', m: ok }); await recargar(); } catch (e) { setMsg({ t: 'error', m: textoError(e) }); } };
   return (
@@ -2246,6 +2251,34 @@ function Configuracion({ eid, est, recargar, borrado }) {
           <button disabled={!nombre.trim() || nombre === est.nombre} onClick={() => hacer(() => datos.actualizarEstudio(eid, { nombre: nombre.trim() }), 'Nombre actualizado.')}
             className={btn + ' bg-purple-600 hover:bg-purple-700 text-white'}>Guardar</button>
         </div>
+      </section>
+      <section className="border-2 border-amber-300 rounded-xl p-4">
+        <h3 className="font-bold text-amber-800 mb-2">Borrar los datos (empezar de cero)</h3>
+        <p className="text-sm text-gray-700 mb-2">
+          Borra <b>todas las respuestas y el progreso</b> de los panelistas, pero <b>deja el estudio</b> con el mismo diseño, códigos y link.
+          Sirve para probar el panel y después usarlo de verdad. {nResp != null && <>Ahora hay <b>{nResp}</b> respuesta{nResp === 1 ? '' : 's'} guardada{nResp === 1 ? '' : 's'}.</>}
+        </p>
+        {borrarPaso === 0 ? (
+          <button disabled={!nResp} onClick={() => { setConfirmaBorrar(''); setBorrarPaso(1); }}
+            className={btn + ' bg-amber-500 hover:bg-amber-600 text-white'}>Borrar datos…</button>
+        ) : (
+          <div className="bg-amber-50 rounded-lg p-3 space-y-2">
+            <p className="text-sm text-amber-900">⚠️ Se van a borrar <b>{nResp}</b> respuestas. <b>No se puede deshacer</b>: si las necesitás, descargalas antes en Resultados.
+              Para confirmar, escribí <b>BORRAR</b>:</p>
+            <div className="flex gap-2">
+              <input className={inp + ' mt-0'} value={confirmaBorrar} onChange={e => setConfirmaBorrar(e.target.value)} placeholder="BORRAR" />
+              <button disabled={confirmaBorrar.trim().toUpperCase() !== 'BORRAR' || borrando}
+                onClick={async () => {
+                  setBorrando(true); setMsg(null);
+                  try { const n = await datos.borrarRespuestas(eid); setMsg({ t: 'ok', m: `Listo: se borraron ${n} respuestas. El estudio quedó vacío y listo para usar.` }); setBorrarPaso(0); await recargar(); }
+                  catch (e) { setMsg({ t: 'error', m: textoError(e) }); }
+                  finally { setBorrando(false); }
+                }}
+                className={btn + ' bg-red-600 hover:bg-red-700 text-white whitespace-nowrap'}>{borrando ? 'Borrando…' : 'Sí, borrar los datos'}</button>
+              <button onClick={() => setBorrarPaso(0)} className={btn + ' bg-gray-100 hover:bg-gray-200'}>Cancelar</button>
+            </div>
+          </div>
+        )}
       </section>
       <section className="border-2 border-red-200 rounded-xl p-4">
         <h3 className="font-bold text-red-700 mb-2">Borrar estudio</h3>

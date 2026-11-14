@@ -165,7 +165,7 @@ function limpiarEstudio(d) {
   return {
     nombre: d.nombre || 'Estudio', tecnica: d.tecnica || 'descriptiva', activo: !!d.activo,
     atributos: d.atributos || [], sesiones: d.sesiones || [], panelistas: d.panelistas || [],
-    estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null,
+    estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, reinicio: d.reinicio || 0,
     creado: d.creado && d.creado.toDate ? d.creado.toDate().toISOString() : null,
   };
 }
@@ -249,6 +249,23 @@ export function observarRespuestas(eid, cb, err) {
 
 export async function contarRespuestas(eid) {
   return (await getCountFromServer(collection(db, 'estudios', eid, 'respuestas'))).data().count;
+}
+
+// Borra las respuestas y el progreso de todos los panelistas, pero deja el estudio y su diseño (para empezar de cero
+// después de probarlo). Marca "reinicio" para que los borradores guardados en los dispositivos tampoco se reutilicen.
+export async function borrarRespuestas(eid) {
+  let n = 0;
+  for (const sub of ['respuestas', 'progreso']) {
+    const q = await getDocs(collection(db, 'estudios', eid, sub));
+    if (sub === 'respuestas') n = q.size;
+    for (let i = 0; i < q.docs.length; i += 400) {
+      const b = writeBatch(db);
+      q.docs.slice(i, i + 400).forEach(d => b.delete(d.ref));
+      await b.commit();
+    }
+  }
+  await updateDoc(ses(eid), { reinicio: Date.now() });
+  return n;
 }
 
 // Borra el estudio completo (respuestas incluidas). Irreversible.

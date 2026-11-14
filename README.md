@@ -53,7 +53,9 @@ Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pa
      https://acatania.shinyapps.io/perfilflash/ con los datos del estudio (ver `shiny/perfilflash/LEEME.md`).
    - **Resultados:** descarga en CSV para R (coma y punto decimal) o para Excel en español (punto y coma y coma decimal),
      con `NombreProducto` y `Rep` ya incluidos.
-   - **Configuración:** link directo para panelistas (`?e=<id>`, útil para un QR), cerrar/reabrir, renombrar, borrar.
+   - **Configuración:** link directo para panelistas (`?e=<id>`, útil para un QR), cerrar/reabrir, renombrar,
+     **borrar los datos** (respuestas y progreso, para empezar de cero después de probar; el estudio, el diseño y el link
+     se mantienen; pide escribir BORRAR) y borrar el estudio.
 
 ### Panelistas
 Eligen el estudio (si hay uno solo, entra directo), su número, y la sesión. Cada muestra se guarda al instante en el

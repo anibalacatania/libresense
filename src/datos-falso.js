@@ -21,7 +21,7 @@ export async function iniciar() { await dormir(5); }
 
 const limpiar = (id, d) => ({ id, nombre: d.nombre, tecnica: d.tecnica || 'descriptiva', activo: !!d.activo,
   atributos: d.atributos || [], sesiones: d.sesiones || [], panelistas: d.panelistas || [], creado: d.creado || null,
-  estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null });
+  estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, reinicio: d.reinicio || 0 });
 
 export async function estudiosActivos() {
   await dormir(st.latencia);
@@ -132,3 +132,11 @@ export function guardarFlash(eid, { Sesion, Valuador, muestras, atributos, def }
 export const configShiny = (tecnica) => (tecnica === 'napping' ? (window.__SHINY_NAP || null) : (window.__SHINY || null));
 export const proyectoId = () => 'demo';
 export async function tokenAdmin() { return esAdmin() ? 'TOKEN-OK' : null; }
+
+export async function borrarRespuestas(eid) {
+  if (!esAdmin()) denegar();
+  const ks = Object.keys(st.docs).filter(k => k.startsWith(`estudios/${eid}/respuestas/`) || k.startsWith(`estudios/${eid}/progreso/`));
+  const n = ks.filter(k => k.includes('/respuestas/')).length;
+  ks.forEach(del); s('estudios/' + eid, { ...g('estudios/' + eid), reinicio: Date.now() });
+  return n;
+}
