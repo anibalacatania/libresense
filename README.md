@@ -28,6 +28,7 @@ Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pa
      Análisis en vivo: MFA con coordenadas sin estandarizar (`type = "c"`), palabras como suplementarias, RV de cada
      panelista, índice de desempeño con duplicados (Hopfer y Heymann) y mapas individuales. Resultados: matriz para MFA
      (X, Y por panelista + tabla de palabras, como la fig. 9.3), formato largo, palabras para `textual` y código R.
+     Análisis completo en R: botón que abre https://acatania.shinyapps.io/napping/ (ver `shiny/napping/LEEME.md`).
    - **Perfil Flash** (según Delarue, cap. 7 de *Novel Techniques in Sensory Characterization and Consumer Profiling*):
      todas las copas juntas, marcadas con **letras** (A, B, C…) sorteadas entre los vinos e iguales para todos los panelistas;
      **sin Williams**. Cada repetición es una sesión con un nuevo sorteo. Duplicados ocultos opcionales para mirar repetibilidad.

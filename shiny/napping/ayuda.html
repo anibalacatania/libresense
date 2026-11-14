@@ -1,0 +1,44 @@
+<div style="max-width: 860px">
+<h4>Napping / mapeo proyectivo</h4>
+<p>Cada panelista prueba las muestras de a una (orden balanceado) y las ubica en una hoja: las que percibe parecidas, cerca;
+las distintas, lejos. El criterio lo decide él. Después puede anotar algunas palabras para cada muestra (Ultra Flash Profile).
+Los datos son las coordenadas (X, Y) de cada muestra en cada hoja y la frecuencia de las palabras (Dehlholm, 2015).</p>
+
+<h5>Variantes</h5>
+<ul>
+<li><b>Hoja</b>: rectangular 60 × 40 cm (Napping, Pagès), cuadrada 60 × 60 cm o redonda. La forma influye en los resultados:
+en la rectangular se tiende a dar más importancia a la dirección horizontal.</li>
+<li><b>Napping global</b> (criterio libre) o <b>parcial</b> (una hoja por foco: aspecto, aroma, boca…). Las hojas parciales se
+pueden analizar por separado o juntas (Dehlholm mostró que juntas dan un espacio parecido al del perfil convencional).</li>
+</ul>
+
+<h5>Análisis</h5>
+<ul>
+<li><b>MFA</b>: cada hoja es un grupo de dos variables (X, Y) sin estandarizar (<code>type = "c"</code>); las palabras, un grupo
+suplementario de frecuencias (no modifican el mapa).</li>
+<li><b>RV</b> de cada hoja con el consenso y entre panelistas; <b>hojas superpuestas</b> al consenso (Procrustes, como <code>pmfa</code>).</li>
+<li><b>Elipses de confianza</b>: bootstrap de los puntos parciales del MFA (Dehlholm et al., 2012; apéndice del capítulo) o paneles
+virtuales (Cadoret y Husson, 2013; <code>boot(method = "napping")</code>).</li>
+<li><b>Palabras</b>: <code>descfreq</code> indica las que caracterizan a cada muestra.</li>
+<li><b>Índice de desempeño</b> (Hopfer y Heymann, 2013): distancia entre un duplicado y su original dividida por la distancia
+máxima entre muestras de ese panelista (más bajo = mejor).</li>
+<li><b>Uso de la hoja</b>: área que ocupan las muestras; valores muy bajos indican proyecciones “amontonadas”.</li>
+</ul>
+
+<h5>Precauciones</h5>
+<ul>
+<li>Es rápido pero poco preciso (“quick and dirty”): interpretar las dos primeras dimensiones y los grupos de muestras.</li>
+<li>Los panelistas usan estrategias distintas (lineal, en L o T, dispersa, amontonada, por categorías): mirar las hojas individuales.</li>
+<li>Las repeticiones individuales rara vez coinciden; para una evaluación espontánea se recomienda una sola sesión.</li>
+</ul>
+
+<h5>Referencias</h5>
+<ul class="small">
+<li>Dehlholm, C. (2015). Projective Mapping and Napping. En P. Varela y G. Ares (eds.), <i>Novel Techniques in Sensory Characterization and Consumer Profiling</i>, cap. 9. CRC Press.</li>
+<li>Pagès, J. (2005). Collection and analysis of perceived product inter-distances using multiple factor analysis: Application to the study of 10 white wines from the Loire Valley. <i>Food Quality and Preference</i>, 16, 642–649.</li>
+<li>Risvik, E., McEwan, J. A., Colwill, J. S., Rogers, R. y Lyon, D. H. (1994). Projective mapping: A tool for sensory analysis and consumer research. <i>Food Quality and Preference</i>, 5, 263–269.</li>
+<li>Dehlholm, C., Brockhoff, P. B. y Bredie, W. L. P. (2012). Confidence ellipses: A variation based on parametric bootstrapping applicable on Multiple Factor Analysis results for rapid graphical evaluation. <i>Food Quality and Preference</i>, 26, 278–280.</li>
+<li>Cadoret, M. y Husson, F. (2013). Construction and evaluation of confidence ellipses applied at sensory data. <i>Food Quality and Preference</i>, 28, 106–115.</li>
+<li>Hopfer, H. y Heymann, H. (2013). A summary of projective mapping observations: The effect of replicates and shape, and individual performance measurements. <i>Food Quality and Preference</i>, 28, 164–181.</li>
+</ul>
+</div>

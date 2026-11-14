@@ -129,6 +129,6 @@ export function guardarFlash(eid, { Sesion, Valuador, muestras, atributos, def }
   })().finally(() => { pendientes--; avisar(); notificar(); });
 }
 
-export const configShiny = () => (window.__SHINY || null);
+export const configShiny = (tecnica) => (tecnica === 'napping' ? (window.__SHINY_NAP || null) : (window.__SHINY || null));
 export const proyectoId = () => 'demo';
 export async function tokenAdmin() { return esAdmin() ? 'TOKEN-OK' : null; }

@@ -1782,8 +1782,8 @@ function datosFlash(est, priv, respuestas, sesion) {
 // Abre el análisis completo en Shiny (R) y le pasa la sesión del administrador por postMessage,
 // solo al sitio configurado y solo a la ventana que se abrió desde acá. El token se renueva cada 45 min.
 let temporizadorShiny = null;
-function abrirShiny(eid, setMsg) {
-  const url = datos.configShiny(); if (!url) return;
+function abrirShiny(eid, tecnica, setMsg) {
+  const url = datos.configShiny(tecnica); if (!url) return;
   const origen = new URL(url).origin;
   const w = window.open(url + (url.includes('?') ? '&' : '?') + 'e=' + encodeURIComponent(eid), 'pf_shiny_' + eid);
   if (!w) { setMsg && setMsg({ t: 'error', m: 'El navegador bloqueó la ventana nueva: permití ventanas emergentes para este sitio.' }); return; }
@@ -1805,8 +1805,8 @@ function abrirShiny(eid, setMsg) {
   };
   window.addEventListener('message', oyente);
 }
-const BotonShiny = ({ eid, setMsg }) => datos.configShiny()
-  ? <button onClick={() => abrirShiny(eid, setMsg)} className={btn + ' bg-indigo-600 hover:bg-indigo-700 text-white'}>Análisis completo en R (Shiny) ↗</button>
+const BotonShiny = ({ eid, tecnica = 'flash', setMsg }) => datos.configShiny(tecnica)
+  ? <button onClick={() => abrirShiny(eid, tecnica, setMsg)} className={btn + ' bg-indigo-600 hover:bg-indigo-700 text-white'}>Análisis completo en R (Shiny) ↗</button>
   : null;
 
 function AnalisisFlash({ eid, est, priv }) {
@@ -2092,6 +2092,7 @@ function AnalisisNapping({ eid, est, priv }) {
             {est.sesiones.map(s => <option key={s.Sesion} value={s.Sesion}>Sesión {s.Sesion}</option>)}
           </select>)}
         <label className="flex items-center gap-1"><input type="checkbox" checked={verPal} onChange={e => setVerPal(e.target.checked)}/> Palabras en el mapa</label>
+        <span className="ml-auto"><BotonShiny eid={eid} tecnica="napping" setMsg={setMsg}/></span>
       </div>
       <div className="grid xl:grid-cols-2 gap-6">
         <div>
@@ -2190,6 +2191,7 @@ descfreq(d[, (2 * k + 1):ncol(d)])       # palabras que caracterizan a cada mues
         <button onClick={() => descargar(`${base}_palabras_textual.csv`, aCSV(textual, ['Valuador', 'Tarea', 'Producto', 'Palabras'], ',', false))} disabled={!textual.length}
           className={btn + ' bg-gray-100 hover:bg-gray-200'}>Palabras (para textual)</button>
         <button onClick={cargar} className={btn + ' bg-gray-100 hover:bg-gray-200'}>Actualizar</button>
+        <BotonShiny eid={eid} tecnica="napping" setMsg={setMsg}/>
       </div>
       <p className="text-xs text-gray-500 mb-4">
         <b>Matriz:</b> una fila por muestra; dos columnas (X, Y) por panelista{d.tareas.length > 1 ? ' y foco' : ''}, y después la tabla de frecuencia de palabras

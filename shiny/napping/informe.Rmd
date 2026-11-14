@@ -1,0 +1,82 @@
+---
+title: "Napping: `r params$nombre`"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+params:
+  largo: NULL
+  pal_tabla: NULL
+  nombre: "Estudio"
+  sesiones: NULL
+  tarea: ""
+  hoja: "rect"
+  dims: [1, 2]
+  nsim: 300
+  k: 3
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 9, fig.height = 7, dpi = 150)
+suppressMessages({ library(FactoMineR); library(SensoMineR); library(ggplot2) })
+for (f in list.files("R", pattern = "\\.R$", full.names = TRUE)) source(f, encoding = "UTF-8")
+A <- armar(params$largo, params$sesiones, params$tarea, params$pal_tabla)
+m <- correr_mfa(A); d <- params$dims
+u <- uso_hoja(A, params$hoja)
+```
+
+## Datos
+
+- Muestras: **`r nrow(A$d)`** · Hojas analizadas: **`r length(A$grupos)`** · Palabras distintas: **`r if (is.null(A$pal)) 0 else ncol(A$pal)`**
+- Hoja: `r (HOJAS[[params$hoja]] %||% HOJAS$rect)$nombre` · `r if (nzchar(params$tarea)) paste("Napping parcial:", params$tarea) else if (length(A$tareas) > 1) "Todos los focos juntos" else "Napping global"`
+- `r if (length(A$excluidas)) paste("No entran al análisis:", paste(A$excluidas, collapse = ", ")) else "Todas las hojas entran al análisis."`
+
+## Mapa de consenso (MFA)
+
+```{r}
+g_consenso(m$ind$coord, m$eig[, 2], d, titulo = "Consenso (MFA, coordenadas sin estandarizar)")
+```
+
+## Elipses de confianza (Dehlholm et al., 2012)
+
+```{r}
+g_elipses(m$ind$coord, m$eig[, 2], elipses_dehlholm(m, d, params$nsim), d)
+```
+
+## Palabras
+
+```{r, eval = !is.null(A$pal) && ncol(A$pal) >= 2}
+g_palabras_mapa(m, d, 2, A$pal)
+```
+
+```{r, results = "asis"}
+x <- if (!is.null(A$pal) && ncol(A$pal) >= 2) palabras_por_muestra(A$pal) else NULL
+if (is.null(x) || !nrow(x)) cat("Sin palabras que caractericen significativamente a alguna muestra.\n\n") else print(knitr::kable(x, row.names = FALSE))
+```
+
+## Panelistas
+
+```{r}
+knitr::kable(data.frame(Hoja = A$grupos, `RV con el consenso` = round(m$group$RV[A$grupos, "MFA"], 3), `Uso de la hoja (%)` = round(u, 1), check.names = FALSE), row.names = FALSE)
+```
+
+```{r, fig.height = 10}
+g_hojas(A, params$hoja)
+```
+
+```{r, fig.height = 10}
+g_superpuesto(superponer(A, m, d))
+```
+
+## Clasificación de las muestras
+
+```{r}
+hc <- correr_hcpc(m, params$k); plot(hc, choice = "tree", title = "Clasificación jerárquica")
+```
+
+## Repetibilidad
+
+```{r, results = "asis"}
+dt <- duplicados(m); if (is.null(dt)) cat("Sin duplicados.\n\n") else print(knitr::kable(dt, row.names = FALSE))
+v <- indice_desempeno(A); if (!is.null(v)) { cat("\nÍndice de desempeño por hoja (Hopfer y Heymann, 2013):\n\n"); print(knitr::kable(data.frame(Hoja = names(v), Indice = round(v, 3)), row.names = FALSE)) }
+```
+
+---
+*Dehlholm, C. (2015). Projective Mapping and Napping. En Varela y Ares (eds.), Novel Techniques in Sensory Characterization and Consumer Profiling, cap. 9. Análisis con FactoMineR y SensoMineR.*
