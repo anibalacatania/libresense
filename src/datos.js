@@ -18,7 +18,7 @@ import {
 } from 'firebase/firestore';
 // El inicio de sesión (firebase/auth) solo lo usa el administrador: se carga aparte, a pedido,
 // así la app de los panelistas es más liviana.
-let db, auth, app, A, urlShiny = null, urlShinyNapping = null, urlShinyCata = null;
+let db, auth, app, A, urlShiny = null, urlShinyNapping = null, urlShinyCata = null, urlShinySorting = null;
 async function cargarAuth() {
   if (!A) {
     A = await import('firebase/auth');
@@ -34,6 +34,7 @@ export async function iniciar() {
   urlShiny = cfg.shiny || null;
   urlShinyNapping = cfg.shinyNapping || null;
   urlShinyCata = cfg.shinyCata || null;
+  urlShinySorting = cfg.shinySorting || null;
   // Administración: sin caché en disco (siempre datos frescos y no comparte cola de escritura con
   // pestañas de panelista abiertas en la misma computadora).
   // Panelistas: guarda en el dispositivo; sin internet sigue funcionando y sube todo al volver.
@@ -118,7 +119,7 @@ export function guardarFlash(eid, { Sesion, Valuador, muestras, atributos, def }
 }
 
 // ------------------------------------------------------------- análisis en Shiny (R)
-export const configShiny = (tecnica) => (tecnica === 'napping' ? urlShinyNapping : tecnica === 'cata' ? urlShinyCata : urlShiny);
+export const configShiny = (tecnica) => (tecnica === 'napping' ? urlShinyNapping : tecnica === 'cata' ? urlShinyCata : tecnica === 'sorting' ? urlShinySorting : urlShiny);
 export const proyectoId = () => app.options.projectId;
 // token de la sesión del administrador (Firebase ID token, dura 1 hora)
 export async function tokenAdmin(forzar) {
@@ -182,7 +183,7 @@ function limpiarEstudio(d) {
   return {
     nombre: d.nombre || 'Estudio', tecnica: d.tecnica || 'descriptiva', activo: !!d.activo,
     atributos: d.atributos || [], sesiones: d.sesiones || [], panelistas: d.panelistas || [],
-    estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, reinicio: d.reinicio || 0, dueno: d.dueno || '',
+    estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, sorting: d.sorting || null, reinicio: d.reinicio || 0, dueno: d.dueno || '',
     creado: d.creado && d.creado.toDate ? d.creado.toDate().toISOString() : null,
   };
 }
@@ -204,7 +205,7 @@ function docsDiseno(est) {
   return {
     estudio: {
       nombre: est.nombre, tecnica: est.tecnica || 'descriptiva', atributos: est.atributos,
-      estructura: est.estructura || null, escala: est.escala || 3, ordenAzar: !!est.ordenAzar, sugerencias: est.sugerencias || [], napping: est.napping || null, cata: est.cata || null,
+      estructura: est.estructura || null, escala: est.escala || 3, ordenAzar: !!est.ordenAzar, sugerencias: est.sugerencias || [], napping: est.napping || null, cata: est.cata || null, sorting: est.sorting || null,
       sesiones: est.sesiones.map(s => ({ Sesion: s.Sesion, NMuestras: s.NMuestras })),
       panelistas: est.panelistas,
     },

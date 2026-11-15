@@ -3,7 +3,7 @@
 App web gratuita para análisis sensorial (antes "panel").
 
 App web para análisis sensorial con **varios estudios a la vez**, sesiones, repeticiones y diseño de Williams.
-Técnicas: **Análisis Descriptivo Cuantitativo** (escala 0–10), **RATA** (Rate-All-That-Apply), **Perfil Flash**, **Napping** (mapeo proyectivo) y **CATA con aceptabilidad** (consumidores).
+Técnicas: **Análisis Descriptivo Cuantitativo** (escala 0–10), **RATA** (Rate-All-That-Apply), **Perfil Flash**, **Napping** (mapeo proyectivo), **CATA con aceptabilidad** (consumidores) y **Sorting** (agrupamiento libre).
 Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pages.
 
 - **Panelistas:** https://anibalacatania.github.io/libresense/
@@ -25,6 +25,14 @@ Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pa
    - Opción: orden de los descriptores al azar por panelista (dentro de cada grupo) para reducir el sesgo por posición.
    - **RATA:** el panelista marca los descriptores presentes y elige la intensidad (bajo/medio/alto, o escala de 5).
      En resultados: 0 = no marcado, 1–3 (o 1–5) = intensidad. No se puede enviar un descriptor marcado sin intensidad.
+   - **Sorting / agrupamiento libre** (Chollet, Valentin y Abdi, mismo libro): todas las muestras juntas (códigos de 3 cifras,
+     orden de cata sugerido con Williams; duplicados ocultos opcionales). El panelista **arrastra** las copas a grupos de
+     muestras parecidas (o toca la copa y el grupo): no todas juntas ni cada una sola. Palabras por grupo opcionales u
+     obligatorias, con lista de ayuda. Análisis en vivo: mapa (MDS clásico de las co-ocurrencias, validado contra `cmdscale`)
+     con las palabras, grupos de muestras, matriz de co-ocurrencias, palabras por muestra, duplicados y los grupos de cada
+     panelista. Resultados: matriz de grupos (para `MCA`/`fast`), matriz con palabras (FAST), co-ocurrencias, formato largo y
+     código R. Análisis completo en R: https://acatania.shinyapps.io/sorting/ (MCA, DISTATIS, MDS, elipses por bootstrap,
+     clasificación, palabras, panelistas; ver `shiny/sorting/LEEME.md`).
    - **CATA con aceptabilidad** (consumidores; Ares y Jaeger en el mismo libro): muestras de a una en orden Williams,
      primero escala hedónica de 9 puntos (opcional) y después todos los términos que describen la muestra (orden de términos
      al azar por consumidor). Opcional: **vino ideal** al final, una sola vez (se guarda con Orden 100 y código IDEAL).

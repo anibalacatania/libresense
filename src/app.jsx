@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import * as datos from 'datos';
 import { ordenNatural, tamaniosSesiones, generarDiseno, generarDisenoFlash, LETRAS } from './diseno.js';
 import { GUSTO, HEDONICA, analizarCata } from './cata.js';
+import { hojasSorting, coocurrencias, mdsSorting, palabrasSorting, palabrasEnMapa, grupos as gruposSorting } from './sorting.js';
 import { TECNICAS, nombreTecnica, palabraLista, etiquetasRata, parsearDescriptores, bloquesDe, rangosDesdePosiciones, HOJAS, claveX, claveY } from './tecnicas.js';
 import { analizar, afm } from './analisis.js';
 
@@ -226,7 +227,7 @@ function PanelApp() {
           <div className="w-14 h-14 mx-auto text-purple-600 mb-3"><Wine/></div>
           <h1 className="text-3xl font-bold text-gray-800 mb-1">{estudio.nombre}</h1>
           <p className="text-gray-600">Seleccioná tu número de panelista</p>
-          <p className="text-xs text-gray-400 mt-1">{nombreTecnica(estudio.tecnica)} • {estudio.sesiones.length} sesiones{estudio.tecnica === 'flash' || estudio.tecnica === 'napping' ? '' : ` • ${atributos.length} ${palabraLista(estudio.tecnica)}`}</p>
+          <p className="text-xs text-gray-400 mt-1">{nombreTecnica(estudio.tecnica)} • {estudio.sesiones.length} sesiones{['flash', 'napping', 'sorting'].includes(estudio.tecnica) ? '' : ` • ${atributos.length} ${palabraLista(estudio.tecnica)}`}</p>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-96 overflow-y-auto">
           {estudio.panelistas.map(v => (
@@ -337,6 +338,14 @@ function PanelApp() {
   // evaluación
   if (estudio.tecnica === 'napping') {
     return <SesionNapping eid={eid} estudio={estudio} valuador={valuador} sesion={sesion} muestras={filas}
+      pendientes={pendientes} cerrado={cerrado} setCerrado={setCerrado} salir={() => setVista('sesiones')}
+      alTerminar={ordenes => {
+        setHechasLocal(prev => ({ ...prev, [sesion.Sesion]: [...new Set([...(prev[sesion.Sesion] || []), ...ordenes])] }));
+        setVista('finSesion'); window.scrollTo(0, 0);
+      }} />;
+  }
+  if (estudio.tecnica === 'sorting') {
+    return <SesionSorting eid={eid} estudio={estudio} valuador={valuador} sesion={sesion} muestras={filas}
       pendientes={pendientes} cerrado={cerrado} setCerrado={setCerrado} salir={() => setVista('sesiones')}
       alTerminar={ordenes => {
         setHechasLocal(prev => ({ ...prev, [sesion.Sesion]: [...new Set([...(prev[sesion.Sesion] || []), ...ordenes])] }));
@@ -1126,6 +1135,208 @@ function SesionNapping({ eid, estudio, valuador, sesion, muestras, pendientes, c
   );
 }
 
+// ---- Sorting (agrupamiento libre; Chollet, Valentin y Abdi): todas las copas juntas; el panelista arma grupos
+// de muestras parecidas (con el criterio que quiera) y, opcionalmente, describe cada grupo con palabras.
+function SesionSorting({ eid, estudio, valuador, sesion, muestras, pendientes, cerrado, setCerrado, alTerminar, salir }) {
+  const cfg = estudio.sorting || { palabras: 'opcional' };
+  const conPalabras = cfg.palabras !== 'no';
+  const clave = `pf_sort_${eid}_${estudio.reinicio || 0}_${valuador}_${sesion.Sesion}`;
+  const [st, setSt] = useState(() => LS.get(clave, null) || { paso: 'agrupar', grupos: [], sig: 1, pal: {} });
+  const [aviso, setAviso] = useState('');
+  const [sel, setSel] = useState(null);
+  const [drag, setDrag] = useState(null);
+  const [nueva, setNueva] = useState({});
+  const ini = React.useRef(null);
+  useEffect(() => { LS.set(clave, st); }, [st]);
+  const upd = c => setSt(prev => ({ ...prev, ...(typeof c === 'function' ? c(prev) : c) }));
+  const porOrden = useMemo(() => Object.fromEntries(muestras.map(m => [m.Orden, m])), [muestras]);
+  const ubicadas = new Set(st.grupos.flatMap(g => g.m));
+  const sueltas = muestras.filter(m => !ubicadas.has(m.Orden));
+  const grupoDe = o => (st.grupos.find(g => g.m.includes(o)) || {}).id;
+  const ideas = useMemo(() => {
+    const p = parsearDescriptores((estudio.sugerencias || []).join('\n'));
+    return p.claves.length ? [...new Set(p.estructura ? p.estructura.filter(i => i.t === 'a').map(i => i.n) : p.claves)].sort((a, b) => a.localeCompare(b, 'es')) : [];
+  }, [estudio]);
+  const propias = [...new Set(Object.values(st.pal).flat())].sort((a, b) => a.localeCompare(b, 'es'));
+
+  const mover = (orden, destino) => {
+    setAviso('');
+    upd(prev => {
+      let g = prev.grupos.map(x => ({ ...x, m: x.m.filter(o => o !== orden) })), sig = prev.sig;
+      if (destino === 'nuevo') g.push({ id: sig++, m: [orden] });
+      else if (destino !== 'bandeja') { const x = g.find(y => String(y.id) === String(destino)); if (x) x.m.push(orden); }
+      g = g.filter(x => x.m.length);
+      const vivos = new Set(g.map(x => x.id)); const pal = Object.fromEntries(Object.entries(prev.pal).filter(([k]) => vivos.has(Number(k))));
+      return { grupos: g, sig, pal };
+    });
+  };
+  const destinoEn = (x, y) => { const el = document.elementFromPoint(x, y); const z = el && el.closest('[data-destino]'); return z ? z.getAttribute('data-destino') : null; };
+  const abajo = (e, orden) => { e.preventDefault(); e.stopPropagation(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch {} ini.current = { orden, x: e.clientX, y: e.clientY, mov: false }; };
+  const mueve = e => { const s = ini.current; if (!s) return; if (!s.mov && Math.hypot(e.clientX - s.x, e.clientY - s.y) < 5) return; s.mov = true; setSel(null); setDrag({ orden: s.orden, x: e.clientX, y: e.clientY, sobre: destinoEn(e.clientX, e.clientY) }); };
+  const arriba = e => {
+    e.stopPropagation();
+    const s = ini.current; ini.current = null; if (!s) return;
+    if (s.mov) { const d = destinoEn(e.clientX, e.clientY); setDrag(null); if (d) mover(s.orden, d); return; }
+    // modo tocar: con otra copa elegida, tocar una copa ya agrupada = poner la elegida en ese grupo
+    if (sel != null && sel !== s.orden && grupoDe(s.orden) != null) { mover(sel, grupoDe(s.orden)); setSel(null); return; }
+    setSel(x => (x === s.orden ? null : s.orden));
+  };
+  const tocarZona = d => { if (sel == null) return; mover(sel, d); setSel(null); };
+
+  const copa = m => (
+    <div key={m.Orden} data-muestra={m.CodigoProducto}
+      onPointerDown={e => abajo(e, m.Orden)} onPointerMove={mueve} onPointerUp={arriba} onPointerCancel={() => { ini.current = null; setDrag(null); }}
+      onClick={e => e.stopPropagation()} style={{ touchAction: 'none' }}
+      className={`select-none cursor-grab w-14 h-14 rounded-full flex items-center justify-center font-black text-sm shadow-lg border-2 bg-gradient-to-br from-yellow-300 to-orange-500 text-gray-900
+        ${drag && drag.orden === m.Orden ? 'opacity-30' : ''} ${sel === m.Orden ? 'ring-4 ring-pink-400 border-white' : 'border-orange-600/40'}`}>{m.CodigoProducto}</div>
+  );
+  const resaltar = d => (drag && drag.sobre === String(d)) || (sel != null && !drag);
+
+  const agregarPalabra = (gid, txt) => {
+    const ws = String(txt || '').split(/[,;\n]/).map(w => w.replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 40)).filter(Boolean);
+    if (!ws.length) return; setAviso('');
+    upd(prev => ({ pal: { ...prev.pal, [gid]: [...new Set([...(prev.pal[gid] || []), ...ws])].slice(0, 12) } }));
+    setNueva(n => ({ ...n, [gid]: '' }));
+  };
+  const quitarPalabra = (gid, w) => upd(prev => ({ pal: { ...prev.pal, [gid]: (prev.pal[gid] || []).filter(x => x !== w) } }));
+
+  const enviar = () => {
+    const payload = [];
+    st.grupos.forEach((g, i) => g.m.forEach(o => {
+      const w = st.pal[g.id] || [];
+      payload.push({ Orden: o, CodigoProducto: porOrden[o].CodigoProducto, valores: { Grupo: i + 1 }, def: w.length ? { Palabras: w.join('; ') } : null });
+    }));
+    datos.guardarFlash(eid, { Sesion: sesion.Sesion, Valuador: valuador, atributos: [], muestras: payload, def: null })
+      .catch(e => { if (e && e.code === 'permission-denied') setCerrado(true); });
+    try { localStorage.removeItem(clave); } catch {}
+    alTerminar(muestras.map(m => m.Orden));
+  };
+
+  const caja = 'bg-white/10 backdrop-blur-lg rounded-2xl p-5 mb-5 border border-white/20';
+  const btnP = 'w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 rounded-xl shadow-2xl text-lg disabled:opacity-40';
+  const btnS = 'w-full bg-white/10 hover:bg-white/20 border-2 border-white/30 text-white font-semibold py-3 rounded-xl';
+  const etiquetaCopa = o => <span key={o} className="bg-gradient-to-br from-yellow-300 to-orange-500 text-gray-900 font-black text-sm px-2 py-1 rounded-lg">{porOrden[o].CodigoProducto}</span>;
+  const cabecera = (
+    <div className={caja}>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h2 className="text-xl font-bold text-white">Panelista {valuador} · Sesión {sesion.Sesion.replace(/^S/, '')}</h2>
+          <p className="text-purple-200">Sorting · {muestras.length} muestras</p>
+          <div className="mt-1"><EstadoNube pendientes={pendientes} oscuro /></div>
+        </div>
+        <button onClick={salir} className="text-sm text-purple-200 hover:text-white underline">Pausa / salir (queda guardado)</button>
+      </div>
+      {cerrado && <p className="text-sm bg-red-50 text-red-700 p-3 rounded-lg mb-3">Este estudio fue cerrado por el administrador: las respuestas nuevas no se pueden guardar.</p>}
+      <p className="text-purple-100 text-sm mb-1">Probá primero las muestras <b>en este orden</b>; después podés volver a probar las que quieras:</p>
+      <div className="flex flex-wrap items-center gap-1">
+        {muestras.map((m, i) => <React.Fragment key={m.Orden}>{i > 0 && <span className="text-purple-300">→</span>}{etiquetaCopa(m.Orden)}</React.Fragment>)}
+      </div>
+    </div>
+  );
+
+  if (st.paso === 'revisar') {
+    return (
+      <div className="min-h-screen py-6 px-4"><div className="max-w-4xl mx-auto">
+        {cabecera}
+        <div className={caja}>
+          <h3 className="text-xl font-bold text-white mb-3">Revisá y enviá</h3>
+          <div className="grid sm:grid-cols-2 gap-3">{st.grupos.map((g, i) => (
+            <div key={g.id} className="rounded-xl p-3 bg-slate-800/70 border border-slate-600/60">
+              <p className="text-white font-bold mb-2">Grupo {i + 1}</p>
+              <div className="flex flex-wrap gap-1 mb-2">{g.m.map(etiquetaCopa)}</div>
+              {conPalabras && <p className="text-sm text-purple-100">{(st.pal[g.id] || []).join(', ') || <span className="text-purple-300">sin palabras</span>}</p>}
+            </div>))}</div>
+        </div>
+        <div className="space-y-3">
+          <button onClick={enviar} className={btnP}>Enviar sesión ✓</button>
+          <button onClick={() => upd({ paso: conPalabras ? 'palabras' : 'agrupar' })} className={btnS}>← Volver</button>
+        </div>
+      </div></div>
+    );
+  }
+
+  if (st.paso === 'palabras') {
+    const faltan = cfg.palabras === 'obligatorio' ? st.grupos.filter(g => !(st.pal[g.id] || []).length) : [];
+    return (
+      <div className="min-h-screen py-6 px-4"><div className="max-w-4xl mx-auto">
+        {cabecera}
+        <div className={caja}>
+          <h3 className="text-xl font-bold text-white mb-1">Describí cada grupo</h3>
+          <p className="text-purple-100 text-sm mb-3">Escribí algunas palabras que describan lo que tienen en común las muestras de cada grupo.
+            {' '}{cfg.palabras === 'obligatorio' ? 'Al menos una por grupo.' : 'Son opcionales.'} Separalas con coma o apretá Enter.</p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {st.grupos.map((g, i) => (
+              <div key={g.id} data-palabras-grupo={i + 1} className={`rounded-xl p-3 bg-slate-800/70 border ${aviso && faltan.includes(g) ? 'border-red-400' : 'border-slate-600/60'}`}>
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span className="text-white font-bold mr-1">Grupo {i + 1}</span>{g.m.map(etiquetaCopa)}
+                </div>
+                <div className="flex flex-wrap gap-1 mb-2">{(st.pal[g.id] || []).map(w => (
+                  <button key={w} onClick={() => quitarPalabra(g.id, w)} className="text-xs bg-pink-500 text-white rounded-full px-2 py-0.5" title="Quitar">{w} ✕</button>))}</div>
+                <input value={nueva[g.id] || ''} onChange={e => setNueva(n => ({ ...n, [g.id]: e.target.value }))}
+                  onKeyDown={e => { if (e.key === 'Enter') agregarPalabra(g.id, nueva[g.id]); }} onBlur={() => agregarPalabra(g.id, nueva[g.id])}
+                  placeholder="ej: frutado, suave" className="w-full rounded-lg px-3 py-2 text-sm text-gray-900" list={`palg-${g.id}`} />
+                <datalist id={`palg-${g.id}`}>{[...new Set([...propias, ...ideas])].map(w => <option key={w} value={w} />)}</datalist>
+              </div>))}
+          </div>
+          {ideas.length > 0 && (
+            <details className="mt-3"><summary className="text-xs text-purple-200 cursor-pointer">Lista de ayuda</summary>
+              <p className="text-xs text-purple-100 mt-1">{ideas.join(' · ')}</p></details>)}
+        </div>
+        {aviso && <p className="mb-3 bg-red-500/90 text-white font-semibold p-3 rounded-xl text-center">{aviso}</p>}
+        <div className="space-y-3">
+          <button onClick={() => { if (faltan.length) { setAviso('Falta al menos una palabra para: ' + faltan.map(g => 'grupo ' + (st.grupos.indexOf(g) + 1)).join(', ')); return; } setAviso(''); upd({ paso: 'revisar' }); window.scrollTo(0, 0); }} className={btnP}>Revisar y enviar →</button>
+          <button onClick={() => upd({ paso: 'agrupar' })} className={btnS}>← Volver a los grupos</button>
+        </div>
+      </div></div>
+    );
+  }
+
+  // agrupar
+  const listo = () => {
+    if (sueltas.length) return setAviso('Falta poner en un grupo: ' + sueltas.map(m => m.CodigoProducto).join(', '));
+    if (st.grupos.length < 2) return setAviso('Hacé al menos 2 grupos: no pueden quedar todas las muestras juntas.');
+    if (st.grupos.length >= muestras.length) return setAviso('No puede quedar cada muestra sola: juntá al menos dos que te parezcan parecidas.');
+    setAviso(''); upd({ paso: conPalabras ? 'palabras' : 'revisar' }); window.scrollTo(0, 0);
+  };
+  return (
+    <div className="min-h-screen py-6 px-4"><div className="max-w-5xl mx-auto">
+      {cabecera}
+      <div className={caja}>
+        <h3 className="text-2xl font-bold text-white mb-1">Armá grupos de muestras parecidas</h3>
+        <p className="text-purple-100 text-sm mb-3">
+          Juntá en un mismo grupo las muestras que te parecen <b>parecidas</b>. El criterio lo decidís vos y podés hacer
+          {' '}<b>tantos grupos como quieras</b>, con la cantidad de muestras que quieras (un grupo puede tener una sola).
+          {' '}Solo dos reglas: no todas en un mismo grupo y no cada una sola. Arrastrá las copas, o tocá una copa y después el grupo.
+        </p>
+        <div data-destino="bandeja" onClick={() => tocarZona('bandeja')}
+          className={`rounded-2xl border-2 border-dashed p-3 mb-4 min-h-[5rem] ${drag && drag.sobre === 'bandeja' ? 'border-pink-400 bg-pink-500/10' : 'border-white/30'}`}>
+          <p className="text-xs text-purple-200 mb-2">{sueltas.length ? 'Muestras sin agrupar — arrastralas a un grupo o a “Nuevo grupo”' : 'Todas las muestras están en un grupo ✓ (podés seguir moviéndolas)'}</p>
+          <div className="flex flex-wrap gap-2">{sueltas.map(copa)}</div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+          {st.grupos.map((g, i) => (
+            <div key={g.id} data-destino={g.id} data-grupo={i + 1} onClick={() => tocarZona(g.id)}
+              className={`rounded-2xl p-3 min-h-[7rem] border-2 transition-colors ${drag && drag.sobre === String(g.id) ? 'border-pink-400 bg-pink-500/20' : sel != null ? 'border-violet-300 bg-violet-500/20' : 'border-violet-400/50 bg-violet-500/10'}`}>
+              <p className="text-white font-bold text-sm mb-2">Grupo {i + 1} <span className="font-normal text-purple-200">· {g.m.length}</span></p>
+              <div className="flex flex-wrap gap-2">{g.m.map(o => copa(porOrden[o]))}</div>
+            </div>))}
+          <div data-destino="nuevo" onClick={() => tocarZona('nuevo')}
+            className={`rounded-2xl p-3 min-h-[7rem] border-2 border-dashed flex items-center justify-center text-center ${drag && drag.sobre === 'nuevo' ? 'border-pink-400 bg-pink-500/20 text-white' : sel != null ? 'border-pink-300 text-pink-100' : 'border-white/30 text-purple-200'}`}>
+            <span className="font-semibold">+ Nuevo grupo<br/><span className="text-xs font-normal">{sel != null ? 'tocá acá para empezar un grupo con la copa elegida' : 'soltá una copa acá'}</span></span>
+          </div>
+        </div>
+        {sel != null && <p className="text-xs text-pink-200 mt-2">Copa {porOrden[sel].CodigoProducto} elegida: tocá un grupo, “Nuevo grupo”, o la zona de arriba para sacarla.</p>}
+      </div>
+      {aviso && <p className="mb-3 bg-red-500/90 text-white font-semibold p-3 rounded-xl text-center">{aviso}</p>}
+      <button onClick={listo} className={btnP}>{conPalabras ? 'Listo, describir los grupos →' : 'Revisar y enviar →'}</button>
+      {drag && (
+        <div className="fixed z-50 pointer-events-none rounded-full flex items-center justify-center font-black text-sm shadow-2xl bg-gradient-to-br from-yellow-300 to-orange-500 text-gray-900 border-2 border-white"
+          style={{ width: 60, height: 60, left: drag.x - 30, top: drag.y - 30 }}>{porOrden[drag.orden].CodigoProducto}</div>
+      )}
+    </div></div>
+  );
+}
+
 // =====================================================================
 // APP DEL ADMINISTRADOR  (index.html#admin)
 // =====================================================================
@@ -1247,7 +1458,7 @@ function ListaEstudios({ abrir, nuevo, rol, yo }) {
                 <span className={`text-xs font-bold px-2 py-1 rounded-full ${e.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'}`}>{e.activo ? 'Activo' : 'Cerrado'}</span>
               </div>
               <p className="text-sm text-gray-600"><span className={`text-xs font-bold px-2 py-0.5 rounded-full mr-1 ${(TECNICAS[e.tecnica] || TECNICAS.descriptiva).color}`}>{(TECNICAS[e.tecnica] || TECNICAS.descriptiva).corto}</span>
-                {e.sesiones.length} sesiones · {e.panelistas.length} panelistas · {e.tecnica === 'flash' ? 'descriptores propios' : e.tecnica === 'napping' ? 'mapeo' : `${e.atributos.length} ${palabraLista(e.tecnica)}`}</p>
+                {e.sesiones.length} sesiones · {e.panelistas.length} panelistas · {e.tecnica === 'flash' ? 'descriptores propios' : e.tecnica === 'napping' ? 'mapeo' : e.tecnica === 'sorting' ? 'agrupamiento' : `${e.atributos.length} ${palabraLista(e.tecnica)}`}</p>
               {e.creado && <p className="text-xs text-gray-400 mt-1">Creado {new Date(e.creado).toLocaleDateString('es-AR')}
                 {rol === 'super' && e.dueno && e.dueno !== yo && <> · por <b className="text-gray-500">{e.dueno}</b></>}</p>}
             </button>))}
@@ -1287,8 +1498,8 @@ function NuevoEstudio({ creado, cancelar }) {
   const vinos = lineas(vinosTxt);
   const desc = useMemo(() => parsearDescriptores(atrTxt), [atrTxt]);
   const atributos = desc.claves;
-  const esRata = tecnica === 'rata', esFlash = tecnica === 'flash', esNap = tecnica === 'napping', esCata = tecnica === 'cata';
-  const juntas = esFlash || esNap;   // todas las muestras en la misma sesión, sin lista fija de atributos
+  const esRata = tecnica === 'rata', esFlash = tecnica === 'flash', esNap = tecnica === 'napping', esCata = tecnica === 'cata', esSort = tecnica === 'sorting';
+  const juntas = esFlash || esNap || esSort;   // todas las muestras en la misma sesión, sin lista fija de atributos
   const focos = [...new Set(lineas(focosTxt).map(f => f.replace(/[_|]/g, ' ').slice(0, 30)))].slice(0, 6);
   const tareas = esNap ? (parcial ? focos : ['Global']) : [];
   // ideas para Perfil Flash: una por línea; se aceptan títulos "# Modalidad" (como la lista común del cap. 7)
@@ -1296,7 +1507,7 @@ function NuevoEstudio({ creado, cancelar }) {
   const nIdeas = sugerencias.filter(x => !x.startsWith('#')).length;
   const duplicados = [...new Set(lineas(dupTxt))];
   const dupMalos = duplicados.filter(d => !vinos.includes(d));
-  const porSesionEf = esFlash ? Math.max(1, vinos.length) : esNap ? Math.max(1, vinos.length + duplicados.length) : Number(porSesion);
+  const porSesionEf = esFlash ? Math.max(1, vinos.length) : esNap || esSort ? Math.max(1, vinos.length + duplicados.length) : Number(porSesion);
   const dup = vinos.filter((v, i) => vinos.indexOf(v) !== i);
 
   const generar = () => {
@@ -1307,7 +1518,8 @@ function NuevoEstudio({ creado, cancelar }) {
     if (vinos.some(v => v.includes('|'))) return setMsg({ t: 'error', m: 'Los nombres de vinos no pueden tener el carácter |' });
     if (!juntas && !atributos.length) return setMsg({ t: 'error', m: 'Agregá al menos un descriptor.' });
     if (esNap && vinos.length + duplicados.length < 4) return setMsg({ t: 'error', m: 'El Napping necesita al menos 4 muestras para ocupar las dos dimensiones de la hoja.' });
-    if (esNap && dupMalos.length) return setMsg({ t: 'error', m: 'Estos duplicados no están en la lista de vinos: ' + dupMalos.join(', ') });
+    if (esSort && vinos.length + duplicados.length < 4) return setMsg({ t: 'error', m: 'El Sorting necesita al menos 4 muestras (lo habitual: de 6 a 20).' });
+    if ((esNap || esSort) && dupMalos.length) return setMsg({ t: 'error', m: 'Estos duplicados no están en la lista de vinos: ' + dupMalos.join(', ') });
     if (esNap && parcial && !focos.length) return setMsg({ t: 'error', m: 'Escribí al menos un foco para el Napping parcial (ej. Aroma).' });
     if (esFlash && vinos.length < 3) return setMsg({ t: 'error', m: 'El Perfil Flash necesita al menos 3 muestras para ordenar.' });
     if (esFlash && vinos.length + duplicados.length > 26) return setMsg({ t: 'error', m: 'En Perfil Flash las copas se codifican con letras: máximo 26 (A–Z), duplicados incluidos.' });
@@ -1320,8 +1532,8 @@ function NuevoEstudio({ creado, cancelar }) {
     if (vinos.length * reps > 900) return setMsg({ t: 'error', m: 'Demasiadas muestras para códigos de 3 dígitos (máx. 900 vinos × repeticiones).' });
     setPrev(esFlash
       ? generarDisenoFlash({ vinos, reps: Number(reps), duplicados, nPanelistas: Number(nPan), semilla: Number(semilla) })
-      : esNap
-      // Napping: todas las muestras en la sesión, orden de cata balanceado (Williams), códigos de 3 cifras; duplicados como muestras aparte
+      : esNap || esSort
+      // Napping y Sorting: todas las muestras en la sesión, orden de cata balanceado (Williams), códigos de 3 cifras; duplicados como muestras aparte
       ? generarDiseno({ vinos: [...vinos, ...duplicados.map(d => `${d} (dup)`)], porSesion: porSesionEf, reps: Number(reps), nPanelistas: Number(nPan), parejo: false, semilla: Number(semilla) })
       : generarDiseno({ vinos, porSesion: porSesionEf, reps: Number(reps), nPanelistas: Number(nPan), parejo, semilla: Number(semilla) }));
   };
@@ -1333,8 +1545,9 @@ function NuevoEstudio({ creado, cancelar }) {
         nombre: nombre.trim(), tecnica,
         atributos: juntas ? [] : atributos, estructura: juntas ? null : desc.estructura,
         escala: esRata ? Number(escala) : 3, ordenAzar: juntas ? false : ordenAzar,
-        sugerencias: esFlash || (esNap && palabras !== 'no') ? sugerencias : [],
+        sugerencias: esFlash || ((esNap || esSort) && palabras !== 'no') ? sugerencias : [],
         napping: esNap ? { hoja, tareas, palabras } : null,
+        sorting: esSort ? { palabras } : null,
         cata: esCata ? { gusto, ideal: conIdeal } : null,
         sesiones: prev.sesiones.map(s => ({ Sesion: s.Sesion, NMuestras: s.NMuestras, Vinos: s.Vinos })),
         panelistas: Array.from({ length: Number(nPan) }, (_, i) => 'V' + (i + 1)),
@@ -1363,6 +1576,7 @@ function NuevoEstudio({ creado, cancelar }) {
                 ['rata', 'RATA', 'Marcar los descriptores presentes y su intensidad (bajo, medio, alto).'],
                 ['cata', 'CATA con aceptabilidad', 'Para consumidores: cuánto les gusta cada muestra y qué términos la describen. Con penalidades.'],
                 ['flash', 'Perfil Flash', 'Cada panelista crea sus descriptores y ordena todas las muestras juntas, de menos a más.'],
+                ['sorting', 'Sorting (agrupamiento libre)', 'Cada panelista arma grupos con las muestras que le parecen parecidas. Con palabras por grupo opcionales.'],
                 ['napping', 'Napping (mapeo proyectivo)', 'Cada panelista ubica las muestras en una hoja: parecidas cerca, distintas lejos. Con palabras opcionales.']].map(([k, t, d]) => (
                 <button key={k} type="button" onClick={() => { setTecnica(k); if (k === 'cata') setOrdenAzar(true); }}
                   className={`text-left rounded-xl border-2 p-3 ${tecnica === k ? 'border-purple-600 bg-purple-50' : 'border-gray-200 hover:border-purple-300'}`}>
@@ -1408,6 +1622,22 @@ function NuevoEstudio({ creado, cancelar }) {
                 que los números de 3 cifras. Las letras se sortean entre los vinos y son <b>las mismas para todos</b>. No se usa Williams.</p>
               <p>Cada repetición es una sesión con otro sorteo de letras (lo habitual es 1). Se recomiendan al menos 4–5 panelistas.</p>
               {Number(nPan) < 4 && <p className="font-semibold text-red-700">Con menos de 4 panelistas el mapa de consenso es poco estable.</p>}
+            </div>
+          )}
+          {esSort && (
+            <div className="space-y-3">
+              <div className="text-sm bg-violet-50 text-violet-900 rounded-lg p-3 space-y-1">
+                <p>Cada panelista recibe <b>todas las muestras juntas</b> (códigos de 3 cifras; un orden de cata sugerido, balanceado con Williams) y arma
+                  <b> grupos de muestras parecidas</b> con el criterio que quiera: no todas juntas ni cada una sola. Después puede describir cada grupo con palabras.</p>
+                <p>Sirve con panelistas entrenados o con consumidores, y con muchas muestras (lo habitual: 6–20). Se recomiendan al menos 15–20 panelistas; una sola sesión.</p>
+              </div>
+              <Campo label="Palabras para cada grupo" ayuda="Después de agrupar, el panelista describe cada grupo (sorting descriptivo). Ayuda mucho a interpretar el mapa.">
+                <select className={inp} value={palabras} onChange={e => setPalabras(e.target.value)}>
+                  <option value="opcional">Opcionales</option>
+                  <option value="obligatorio">Obligatorias (al menos una por grupo)</option>
+                  <option value="no">Sin palabras (solo agrupar)</option>
+                </select>
+              </Campo>
             </div>
           )}
           {esNap && (
@@ -1467,7 +1697,7 @@ function NuevoEstudio({ creado, cancelar }) {
           <Campo label="Semilla" ayuda={esFlash ? 'Con la misma semilla y los mismos datos se obtiene el mismo sorteo de letras.' : 'Con la misma semilla y los mismos datos se obtiene exactamente el mismo diseño.'}>
             <input type="number" className={inp} value={semilla} onChange={e => setSemilla(e.target.value)} />
           </Campo>
-          {esNap
+          {esNap || esSort
             ? (palabras !== 'no' && <Campo label={`Lista de ayuda para las palabras (opcional) · ${nIdeas} términos`}
                 ayuda={<>El panelista la puede desplegar y tocar los términos que le sirvan. Uno por línea; se pueden agrupar con <code># Aroma</code>…
                   Con consumidores, una lista puede sesgar las respuestas.</>}>
@@ -1512,7 +1742,7 @@ function NuevoEstudio({ creado, cancelar }) {
             : <div>
                 <h2 className="text-lg font-bold text-gray-800 mb-1">Vista previa: {prev.sesiones.length} sesiones</h2>
                 <p className="text-sm text-gray-600 mb-3">
-                  <b>{nombreTecnica(tecnica)}</b> · {esNap ? `${HOJAS[hoja].nombre} · ${parcial ? 'parcial: ' + focos.join(', ') : 'global'} · ${palabras === 'no' ? 'sin palabras' : palabras === 'obligatorio' ? 'palabras obligatorias' : 'palabras opcionales'}` : esFlash ? 'descriptores propios de cada panelista' : `${atributos.length} ${palabraLista(tecnica)}${esCata ? (gusto ? ' · con agrado' : ' · sin agrado') + (conIdeal ? ' · con ideal' : '') : ''}`}{!juntas && desc.hayGrupos ? ` en ${desc.estructura.filter(i => i.t === 'g1').length || desc.estructura.filter(i => i.t === 'g2').length} grupos` : ''} ·{' '}
+                  <b>{nombreTecnica(tecnica)}</b> · {esSort ? (palabras === 'no' ? 'sin palabras' : palabras === 'obligatorio' ? 'palabras obligatorias por grupo' : 'palabras opcionales por grupo') : esNap ? `${HOJAS[hoja].nombre} · ${parcial ? 'parcial: ' + focos.join(', ') : 'global'} · ${palabras === 'no' ? 'sin palabras' : palabras === 'obligatorio' ? 'palabras obligatorias' : 'palabras opcionales'}` : esFlash ? 'descriptores propios de cada panelista' : `${atributos.length} ${palabraLista(tecnica)}${esCata ? (gusto ? ' · con agrado' : ' · sin agrado') + (conIdeal ? ' · con ideal' : '') : ''}`}{!juntas && desc.hayGrupos ? ` en ${desc.estructura.filter(i => i.t === 'g1').length || desc.estructura.filter(i => i.t === 'g2').length} grupos` : ''} ·{' '}
                   {prev.totalMuestras} muestras ({vinos.length}{juntas && duplicados.length ? ` + ${duplicados.length} duplicado${duplicados.length > 1 ? 's' : ''}` : ''} vinos × {reps} rep.) · {nPan} panelistas · {prev.diseno.length} evaluaciones en total
                 </p>
                 {!esFlash && !balanceado && (
@@ -1575,8 +1805,8 @@ function EstudioAdmin({ eid, volver }) {
       </div>
       {tab === 'progreso' && <Progreso eid={eid} est={est} />}
       {tab === 'servicio' && <Servicio est={est} priv={priv} />}
-      {tab === 'analisis' && (est.tecnica === 'cata' ? <AnalisisCata eid={eid} est={est} priv={priv} /> : est.tecnica === 'flash' ? <AnalisisFlash eid={eid} est={est} priv={priv} /> : est.tecnica === 'napping' ? <AnalisisNapping eid={eid} est={est} priv={priv} /> : <Analisis eid={eid} est={est} priv={priv} />)}
-      {tab === 'resultados' && (est.tecnica === 'flash' ? <ResultadosFlash eid={eid} est={est} priv={priv} /> : est.tecnica === 'napping' ? <ResultadosNapping eid={eid} est={est} priv={priv} /> : <Resultados eid={eid} est={est} priv={priv} />)}
+      {tab === 'analisis' && (est.tecnica === 'sorting' ? <AnalisisSorting eid={eid} est={est} priv={priv} /> : est.tecnica === 'cata' ? <AnalisisCata eid={eid} est={est} priv={priv} /> : est.tecnica === 'flash' ? <AnalisisFlash eid={eid} est={est} priv={priv} /> : est.tecnica === 'napping' ? <AnalisisNapping eid={eid} est={est} priv={priv} /> : <Analisis eid={eid} est={est} priv={priv} />)}
+      {tab === 'resultados' && (est.tecnica === 'sorting' ? <ResultadosSorting eid={eid} est={est} priv={priv} /> : est.tecnica === 'flash' ? <ResultadosFlash eid={eid} est={est} priv={priv} /> : est.tecnica === 'napping' ? <ResultadosNapping eid={eid} est={est} priv={priv} /> : <Resultados eid={eid} est={est} priv={priv} />)}
       {tab === 'config' && <Configuracion eid={eid} est={est} recargar={recargar} borrado={volver} />}
     </div>
   );
@@ -1832,6 +2062,20 @@ function Analisis({ eid, est, priv }) {
 }
 
 // ---- CATA: agrado, frecuencias (Q de Cochran), mapa de correspondencias y penalidades
+// separa etiquetas que se pisan (empuja en vertical, unas pocas iteraciones)
+function separarEtiquetas(et) {
+  for (let it = 0; it < 60; it++) {
+    let movio = false;
+    for (let a = 0; a < et.length; a++) for (let b = a + 1; b < et.length; b++) {
+      const A = et[a], B = et[b];
+      const sx = (A.w + B.w) / 2 - Math.abs(A.x - B.x), sy = (A.h + B.h) / 2 - Math.abs(A.y - B.y);
+      if (sx > 0 && sy > 0) { const d = sy / 2 + 0.5, s = A.y <= B.y ? -1 : 1; A.y += s * d; B.y -= s * d; movio = true; }
+    }
+    if (!movio) break;
+  }
+  return et;
+}
+
 function MapaCA({ ca, inv1, inv2, svgRef }) {
   const W = 640, H = 520, m = 40;
   const s1 = inv1 ? -1 : 1, s2 = inv2 ? -1 : 1;
@@ -1839,19 +2083,26 @@ function MapaCA({ ca, inv1, inv2, svgRef }) {
   const fil = P(ca.filas), cols = P(ca.cols), sup = P(ca.sup);
   const lim = Math.max(1e-9, ...[...fil, ...cols, ...sup].map(p => Math.max(Math.abs(p.x), Math.abs(p.y)))) * 1.15;
   const X = x => W / 2 + (x / lim) * (W / 2 - m), Y = y => H / 2 - (y / lim) * (H / 2 - m);
+  const et = separarEtiquetas([
+    ...cols.map(c => ({ k: 'c' + c.a, t: c.a, tipo: 'col', px: X(c.x), py: Y(c.y), x: X(c.x), y: Y(c.y), w: String(c.a).length * 6.2 + 4, h: 13 })),
+    ...fil.map(p => ({ k: 'f' + p.v, t: p.v, tipo: 'fila', px: X(p.x), py: Y(p.y), x: X(p.x) + 7 + String(p.v).length * 3.8, y: Y(p.y) - 9, w: String(p.v).length * 7.6 + 4, h: 15 })),
+    ...sup.map(p => ({ k: 's' + p.v, t: p.v, tipo: 'sup', px: X(p.x), py: Y(p.y), x: X(p.x) + 10 + String(p.v).length * 3.8, y: Y(p.y) - 10, w: String(p.v).length * 7.6 + 4, h: 15 })),
+  ]);
   return (
     <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="w-full h-auto bg-white border rounded-lg" xmlns="http://www.w3.org/2000/svg" fontFamily="sans-serif">
       <line x1={m} x2={W - m} y1={H / 2} y2={H / 2} stroke="#cbd5e1" strokeDasharray="4 4"/>
       <line y1={m} y2={H - m} x1={W / 2} x2={W / 2} stroke="#cbd5e1" strokeDasharray="4 4"/>
       <text x={W - 4} y={H / 2 + 16} textAnchor="end" fontSize="12" fill="#64748b">Dim 1 ({fmt(ca.pct[0], 1)}%)</text>
       <text x={W / 2 + 6} y={14} fontSize="12" fill="#64748b">Dim 2 ({fmt(ca.pct[1], 1)}%)</text>
-      {cols.map(c => <text key={c.a} x={X(c.x)} y={Y(c.y)} fontSize="11" fill="#be185d" textAnchor="middle" dominantBaseline="middle">{c.a}</text>)}
-      {fil.map(p => (
-        <g key={p.v}><circle cx={X(p.x)} cy={Y(p.y)} r="5" fill="#4f46e5"/>
-          <text x={X(p.x) + 7} y={Y(p.y) - 7} fontSize="13" fontWeight="bold" fill="#1e1b4b">{p.v}</text></g>))}
-      {sup.map(p => (
-        <g key={p.v}><text x={X(p.x)} y={Y(p.y)} fontSize="20" fill="#d97706" textAnchor="middle" dominantBaseline="middle">★</text>
-          <text x={X(p.x) + 10} y={Y(p.y) - 8} fontSize="13" fontWeight="bold" fill="#b45309">{p.v}</text></g>))}
+      {fil.map(p => <circle key={p.v} cx={X(p.x)} cy={Y(p.y)} r="5" fill="#4f46e5"/>)}
+      {sup.map(p => <text key={p.v} x={X(p.x)} y={Y(p.y)} fontSize="20" fill="#d97706" textAnchor="middle" dominantBaseline="middle">★</text>)}
+      {et.map(e => (
+        <g key={e.k}>
+          {Math.hypot(e.x - e.px, e.y - e.py) > (e.tipo === 'col' ? 8 : 22) && <line x1={e.px} y1={e.py} x2={e.x} y2={e.y} stroke="#cbd5e1" strokeWidth="0.8"/>}
+          <text x={e.x} y={e.y} textAnchor="middle" dominantBaseline="middle"
+            fontSize={e.tipo === 'col' ? 11 : 13} fontWeight={e.tipo === 'col' ? 'normal' : 'bold'}
+            fill={e.tipo === 'col' ? '#be185d' : e.tipo === 'sup' ? '#b45309' : '#1e1b4b'}>{e.t}</text>
+        </g>))}
     </svg>
   );
 }
@@ -2551,6 +2802,210 @@ descfreq(d[, (2 * k + 1):ncol(d)])       # palabras que caracterizan a cada mues
             <table className="text-xs">
               <thead className="bg-gray-100 sticky top-0"><tr>{colsM.map(c => <th key={c} className="p-2 text-left whitespace-nowrap">{c}</th>)}</tr></thead>
               <tbody>{matriz.map((f, i) => <tr key={i} className="border-t">{colsM.map(c => <td key={c} className="p-2 whitespace-nowrap">{typeof f[c] === 'number' ? fmt(f[c], f[c] % 1 ? 1 : 0) : f[c]}</td>)}</tr>)}</tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---- Sorting: co-ocurrencias, mapa (MDS), palabras y grupos de cada panelista
+function datosSorting(est, priv, respuestas, sesion = '') {
+  const info = {}; priv.filas.forEach(d => { info[`${d.Valuador}_${d.Sesion}_${d.Orden}`] = d; });
+  const nombre = r => (info[`${r.Valuador}_${r.Sesion}_${r.Orden}`] || {}).NombreProducto || r.CodigoProducto;
+  const rs = respuestas.filter(r => !sesion || r.Sesion === sesion);
+  const hojas = hojasSorting(rs, nombre).sort((a, b) => ordenNatural(a.Sesion, b.Sesion) || ordenNatural(a.Valuador, b.Valuador));
+  const productos = [...new Set(rs.map(nombre))].sort(ordenNatural);
+  const largo = rs.map(r => { const d = info[`${r.Valuador}_${r.Sesion}_${r.Orden}`] || {};
+    return { Estudio: est.nombre, Sesion: r.Sesion, Valuador: r.Valuador, Orden: r.Orden, NombreProducto: nombre(r), Rep: d.Rep || '', CodigoProducto: r.CodigoProducto,
+      Grupo: (r.valores || {}).Grupo, Palabras: ((r.def || {}).Palabras || '').replace(/;\s*/g, ', '), timestamp: r.ts || '' }; })
+    .sort((a, b) => ordenNatural(a.Sesion, b.Sesion) || ordenNatural(a.Valuador, b.Valuador) || a.Grupo - b.Grupo || a.Orden - b.Orden);
+  return { hojas, productos, largo };
+}
+
+function AnalisisSorting({ eid, est, priv }) {
+  const [resp, setResp] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const [sesion, setSesion] = useState('');
+  const [minPal, setMinPal] = useState(2);
+  const [k, setK] = useState(3);
+  const [inv1, setInv1] = useState(false), [inv2, setInv2] = useState(false);
+  const svgRef = React.useRef(null);
+  useEffect(() => datos.observarRespuestas(eid, setResp, e => setMsg({ t: 'error', m: textoError(e) })), [eid]);
+  const res = useMemo(() => {
+    if (!resp) return null;
+    const d = datosSorting(est, priv, resp, sesion);
+    const co = coocurrencias(d.productos, d.hojas);
+    const mapa = mdsSorting(d.productos, co);
+    const pal = palabrasSorting(d.productos, d.hojas);
+    return { ...d, co, mapa, pal };
+  }, [resp, sesion]);
+  if (!res) return <div><Mensaje msg={msg}/><p className="text-gray-500">Cargando respuestas…</p></div>;
+  const P = res.productos, n = P.length;
+  const ordenMapa = res.mapa ? [...res.mapa.filas].sort((a, b) => a.x - b.x).map(f => P.indexOf(f.v)) : P.map((_, i) => i);
+  const prop = (i, j) => (res.co.N[i][j] ? res.co.C[i][j] / res.co.N[i][j] : 0);
+  const kk = Math.min(Math.max(2, k), Math.max(2, n - 1));
+  const cl = n >= 3 ? gruposSorting(P, res.co, kk) : [];
+  const palMapa = res.mapa ? palabrasEnMapa(res.mapa, res.pal, minPal) : [];
+  const nGr = res.hojas.map(h => new Set(Object.values(h.grupos)).size);
+  const palabrasOrden = Object.entries(res.pal).map(([w, por]) => ({ w, tot: Object.values(por).reduce((s, x) => s + x, 0), por })).sort((a, b) => b.tot - a.tot);
+  // duplicados: % de panelistas que pusieron el duplicado junto a su original
+  const dups = P.filter(p => /\(dup\)$/.test(p)).map(p => { const o = p.replace(/\s*\(dup\)$/, ''); const i = P.indexOf(p), j = P.indexOf(o);
+    return j < 0 ? null : { p: o, n: res.co.N[i][j], juntos: res.co.C[i][j] }; }).filter(Boolean);
+  const bajarSVG = () => {
+    const t = new XMLSerializer().serializeToString(svgRef.current);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'image/svg+xml' }));
+    a.download = est.nombre.replace(/[^\w\-]+/g, '_') + '_sorting.svg'; a.click();
+  };
+  return (
+    <div className="space-y-8">
+      <Mensaje msg={msg}/>
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <span className="text-gray-700"><b>{res.hojas.length}</b> panelistas · <b>{n}</b> muestras{nGr.length ? <> · <b>{fmt(nGr.reduce((s, x) => s + x, 0) / nGr.length, 1)}</b> grupos por panelista en promedio ({Math.min(...nGr)}–{Math.max(...nGr)})</> : ''}</span>
+        <span className="text-xs text-emerald-600">● en vivo</span>
+        {est.sesiones.length > 1 && <select value={sesion} onChange={e => setSesion(e.target.value)} className="border-2 border-gray-200 rounded-lg px-2 py-1">
+          <option value="">Todas las sesiones</option>{est.sesiones.map(s => <option key={s.Sesion} value={s.Sesion}>Sesión {s.Sesion}</option>)}</select>}
+        <span className="ml-auto"><BotonShiny eid={eid} tecnica="sorting" setMsg={setMsg}/></span>
+      </div>
+      {res.hojas.length > 0 && res.hojas.length < 15 && <p className="text-sm bg-amber-50 text-amber-800 p-3 rounded-lg">Todavía hay pocos panelistas ({res.hojas.length}): el mapa se estabiliza a partir de 15–20.</p>}
+
+      <section className="grid xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2">
+          <h3 className="font-bold text-gray-800 mb-2">Mapa de las muestras</h3>
+          {res.mapa
+            ? <>
+                <MapaCA ca={{ filas: res.mapa.filas, cols: palMapa, sup: [], pct: res.mapa.pct }} inv1={inv1} inv2={inv2} svgRef={svgRef}/>
+                <div className="flex flex-wrap gap-4 items-center text-xs text-gray-600 mt-2">
+                  <label className="flex items-center gap-1"><input type="checkbox" checked={inv1} onChange={e => setInv1(e.target.checked)}/> Invertir Dim 1</label>
+                  <label className="flex items-center gap-1"><input type="checkbox" checked={inv2} onChange={e => setInv2(e.target.checked)}/> Invertir Dim 2</label>
+                  {palabrasOrden.length > 0 && <label className="flex items-center gap-1">Palabras usadas al menos
+                    <select value={minPal} onChange={e => setMinPal(Number(e.target.value))} className="border rounded px-1">{[1, 2, 3, 5, 10, 1000].map(x => <option key={x} value={x}>{x === 1000 ? 'ocultar' : x + ' veces'}</option>)}</select></label>}
+                  <button onClick={bajarSVG} className="underline text-purple-700">Descargar gráfico (SVG)</button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Muestras cerca = muchos panelistas las pusieron en el mismo grupo. MDS clásico (como <code>cmdscale</code>) sobre la disimilitud
+                  1 − proporción de panelistas que las agruparon juntas. Las palabras se ubican en el promedio de las muestras donde se usaron.</p>
+              </>
+            : <p className="text-gray-500 border-2 border-dashed rounded-xl p-8 text-center">Se necesitan al menos 3 muestras y respuestas de más de un panelista.</p>}
+        </div>
+        <div>
+          <h3 className="font-bold text-gray-800 mb-2">Grupos de muestras</h3>
+          <label className="text-sm text-gray-600 flex items-center gap-2 mb-2">Cantidad de grupos
+            <input type="number" min="2" max={Math.max(2, n - 1)} value={kk} onChange={e => setK(Number(e.target.value))} className="border-2 rounded px-2 py-1 w-16"/></label>
+          <ol className="space-y-2">{cl.map((g, i) => (
+            <li key={i} className="border rounded-lg p-2 text-sm"><b className="text-violet-700">Grupo {i + 1}:</b> {g.join(', ')}</li>))}</ol>
+          <p className="text-xs text-gray-500 mt-2">Clasificación jerárquica (enlace promedio) sobre las co-ocurrencias: muestras que el panel tendió a juntar.</p>
+          {dups.length > 0 && (
+            <div className="mt-4"><h4 className="font-semibold text-gray-800 text-sm mb-1">Duplicados</h4>
+              <ul className="text-sm">{dups.map(d => <li key={d.p}>{d.p}: <b>{d.n ? Math.round(100 * d.juntos / d.n) : 0}%</b> de los panelistas lo puso junto a su duplicado ({d.juntos}/{d.n})</li>)}</ul></div>)}
+        </div>
+      </section>
+
+      <section>
+        <h3 className="font-bold text-gray-800 mb-2">Co-ocurrencias: % de panelistas que puso cada par en el mismo grupo</h3>
+        <div className="overflow-auto border rounded-lg max-h-[560px]">
+          <table className="text-xs">
+            <thead className="bg-gray-100 sticky top-0"><tr><th className="p-2 sticky left-0 bg-gray-100"></th>{ordenMapa.map(j => <th key={j} className="p-2 whitespace-nowrap">{P[j]}</th>)}</tr></thead>
+            <tbody>{ordenMapa.map(i => (
+              <tr key={i} className="border-t"><td className="p-2 font-semibold whitespace-nowrap sticky left-0 bg-white">{P[i]}</td>
+                {ordenMapa.map(j => { const x = i === j ? null : prop(i, j); return (
+                  <td key={j} className="p-2 text-center" style={{ background: x == null ? '#f1f5f9' : `rgba(124,58,237,${x * 0.85})`, color: x != null && x > 0.55 ? 'white' : undefined }}>{x == null ? '' : Math.round(100 * x)}</td>); })}
+              </tr>))}</tbody>
+          </table>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">Ordenadas según la primera dimensión del mapa. 100 = todos los panelistas las juntaron.</p>
+      </section>
+
+      {palabrasOrden.length > 0 && (
+        <section>
+          <h3 className="font-bold text-gray-800 mb-2">Palabras más usadas</h3>
+          <div className="overflow-auto border rounded-lg max-h-[480px]">
+            <table className="text-xs">
+              <thead className="bg-gray-100 sticky top-0"><tr><th className="p-2 text-left sticky left-0 bg-gray-100">Palabra</th><th className="p-2">Total</th>{P.map(p => <th key={p} className="p-2 whitespace-nowrap">{p}</th>)}</tr></thead>
+              <tbody>{palabrasOrden.slice(0, 60).map(({ w, tot, por }) => (
+                <tr key={w} className="border-t"><td className="p-2 font-semibold sticky left-0 bg-white">{w}</td><td className="p-2 text-center font-bold">{tot}</td>
+                  {P.map(p => <td key={p} className="p-2 text-center" style={{ background: por[p] ? `rgba(219,39,119,${Math.min(1, por[p] / Math.max(1, res.hojas.length * 0.5)) * 0.7})` : undefined }}>{por[p] || ''}</td>)}</tr>))}</tbody>
+            </table>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">Cuántos panelistas usaron cada palabra para describir el grupo donde puso cada muestra.</p>
+        </section>
+      )}
+
+      <section>
+        <h3 className="font-bold text-gray-800 mb-2">Grupos de cada panelista</h3>
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">{res.hojas.map(h => {
+          const gs = {}; Object.entries(h.grupos).forEach(([p, g]) => { (gs[g] = gs[g] || []).push(p); });
+          return (
+            <div key={h.id} className="border rounded-lg p-3 text-sm">
+              <p className="font-bold text-gray-800 mb-1">{h.Valuador}{est.sesiones.length > 1 ? ` · ${h.Sesion}` : ''} <span className="font-normal text-gray-500">· {Object.keys(gs).length} grupos</span></p>
+              {Object.keys(gs).sort((a, b) => a - b).map(g => (
+                <p key={g} className="text-xs mb-0.5"><span className="text-violet-700 font-semibold">{gs[g].sort(ordenNatural).join(', ')}</span>
+                  {(h.pal[gs[g][0]] || []).length > 0 && <span className="text-gray-500"> — {h.pal[gs[g][0]].join(', ')}</span>}</p>))}
+            </div>); })}</div>
+      </section>
+    </div>
+  );
+}
+
+function ResultadosSorting({ eid, est, priv }) {
+  const [resp, setResp] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const cargar = async () => { setMsg(null); try { setResp(await datos.respuestasEstudio(eid)); } catch (e) { setMsg({ t: 'error', m: textoError(e) }); } };
+  useEffect(() => { cargar(); }, [eid]);
+  if (!resp) return <div><Mensaje msg={msg}/><p className="text-gray-500">Cargando…</p></div>;
+  const d = datosSorting(est, priv, resp);
+  const base = est.nombre.replace(/[^\w\-]+/g, '_');
+  const ids = d.hojas.map(h => est.sesiones.length > 1 ? h.id : h.Valuador);
+  // matriz para R: una fila por muestra, una columna por panelista con el número de grupo
+  const colsM = ['Producto', ...ids];
+  const matriz = d.productos.map(p => Object.fromEntries([['Producto', p], ...d.hojas.map((h, i) => [ids[i], h.grupos[p] == null ? '' : 'G' + h.grupos[p]])]));
+  // matriz FAST: en cada celda, las palabras del grupo (o G1, G2… si no hay)
+  const fast = d.productos.map(p => Object.fromEntries([['Producto', p], ...d.hojas.map((h, i) => [ids[i], h.grupos[p] == null ? '' : ((h.pal[p] || []).join(' ') || 'G' + h.grupos[p])])]));
+  const co = coocurrencias(d.productos, d.hojas);
+  const coo = d.productos.map((p, i) => Object.fromEntries([['Producto', p], ...d.productos.map((q, j) => [q, co.C[i][j]])]));
+  const colsL = ['Estudio', 'Sesion', 'Valuador', 'Orden', 'NombreProducto', 'Rep', 'CodigoProducto', 'Grupo', 'Palabras', 'timestamp'];
+  const hayPal = d.largo.some(r => r.Palabras);
+  const codigoR = `library(FactoMineR)
+d <- read.csv("${base}_sorting_matriz.csv", row.names = 1, check.names = FALSE, colClasses = "character")
+d[] <- lapply(d, factor)
+acm <- MCA(d)                                  # mapa de las muestras (Cadoret, Lê y Pagès)
+plot(acm, invisible = c("var", "quali.sup"))   # solo las muestras
+HCPC(acm, nb.clust = -1)                       # clasificación de las muestras
+co <- as.matrix(read.csv("${base}_coocurrencias.csv", row.names = 1, check.names = FALSE))
+mds <- cmdscale(1 - co / ${d.hojas.length})${' '.repeat(Math.max(1, 21 - String(d.hojas.length).length))}# mapa por MDS clásico${hayPal ? `
+library(SensoMineR)
+f <- read.csv("${base}_sorting_fast.csv", row.names = 1, check.names = FALSE, colClasses = "character")
+res <- fast(f, sep.words = " ")                # FAST: MCA + análisis de las palabras` : ''}`;
+  const boton = (txt, f, filas, cols, principal) => (
+    <button onClick={() => descargar(f, aCSV(filas, cols, ',', false))} disabled={!filas.length}
+      className={btn + (principal ? ' bg-emerald-600 hover:bg-emerald-700 text-white' : ' bg-emerald-100 hover:bg-emerald-200 text-emerald-800')}>{txt}</button>);
+  return (
+    <div>
+      <Mensaje msg={msg}/>
+      <p className="text-gray-700 mb-4"><b>{d.hojas.length}</b> sesiones de panelista enviadas de <b>{est.panelistas.length * est.sesiones.length}</b>.</p>
+      <div className="flex flex-wrap gap-3 mb-3">
+        {boton('Matriz de grupos (R)', `${base}_sorting_matriz.csv`, matriz, colsM, true)}
+        {hayPal && boton('Matriz con palabras (FAST)', `${base}_sorting_fast.csv`, fast, colsM, false)}
+        {boton('Co-ocurrencias', `${base}_coocurrencias.csv`, coo, ['Producto', ...d.productos], false)}
+        {boton('Formato largo (R)', `${base}_sorting_largo.csv`, d.largo, colsL, true)}
+        <button onClick={() => descargar(`${base}_sorting_largo_excel.csv`, aCSV(d.largo, colsL, ';', true))} disabled={!d.largo.length}
+          className={btn + ' bg-emerald-100 hover:bg-emerald-200 text-emerald-800'}>Formato largo (Excel)</button>
+        <button onClick={cargar} className={btn + ' bg-gray-100 hover:bg-gray-200'}>Actualizar</button>
+        <BotonShiny eid={eid} tecnica="sorting" setMsg={setMsg}/>
+      </div>
+      <p className="text-xs text-gray-500 mb-4">
+        <b>Matriz de grupos:</b> una fila por muestra y una columna por panelista con su grupo (G1, G2…), el formato de <code>FactoMineR::MCA</code> y <code>SensoMineR::fast</code>.
+        {hayPal && <> <b>Matriz con palabras:</b> igual, pero en cada celda las palabras con que el panelista describió el grupo.</>}
+        {' '}<b>Co-ocurrencias:</b> cuántos panelistas pusieron cada par de muestras en el mismo grupo. <b>Formato largo:</b> una fila por panelista × muestra.
+      </p>
+      {d.hojas.length > 0 && (
+        <>
+          <p className="text-sm font-semibold text-gray-700 mb-1">Código R</p>
+          <pre className="bg-gray-900 text-gray-100 text-xs rounded-lg p-3 overflow-auto mb-4">{codigoR}</pre>
+          <div className="overflow-auto max-h-[50vh] border rounded-lg">
+            <table className="text-xs">
+              <thead className="bg-gray-100 sticky top-0"><tr>{colsM.map(c => <th key={c} className="p-2 text-left whitespace-nowrap">{c}</th>)}</tr></thead>
+              <tbody>{matriz.map((f, i) => <tr key={i} className="border-t">{colsM.map(c => <td key={c} className="p-2 whitespace-nowrap">{f[c]}</td>)}</tr>)}</tbody>
             </table>
           </div>
         </>

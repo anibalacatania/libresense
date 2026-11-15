@@ -1,0 +1,38 @@
+<div style="max-width: 860px">
+<h4>Sorting (agrupamiento libre)</h4>
+<p>Cada panelista recibe todas las muestras juntas y las separa en grupos de muestras que le parecen parecidas, con el criterio
+que quiera. No puede ponerlas todas en un mismo grupo ni dejar cada una sola. Después puede describir cada grupo con palabras
+(<i>sorting</i> descriptivo). Los datos son, para cada panelista, una partición de las muestras (Chollet, Valentin y Abdi, 2014).</p>
+
+<h5>Recomendaciones del método</h5>
+<ul>
+<li>Funciona con panelistas entrenados o con consumidores; es rápido y no necesita definir atributos.</li>
+<li>Con muchas muestras: lo habitual son 6–20 (con más, la fatiga sensorial pesa).</li>
+<li>Al menos 15–20 panelistas para que el mapa sea estable.</li>
+<li>Los panelistas suelen usar criterios distintos (color, aroma, gusto, calidad): el mapa muestra en qué coinciden.</li>
+</ul>
+
+<h5>Análisis</h5>
+<ul>
+<li><b>Correspondencias múltiples (MCA)</b>: cada panelista es una variable categórica cuyas categorías son sus grupos (Cadoret, Lê y Pagès, 2009).</li>
+<li><b>DISTATIS</b>: una matriz de distancias por panelista; el mapa de compromiso pondera a cada panelista según cuánto coincide con el resto (Abdi et al., 2007). También da el parecido (RV) entre panelistas.</li>
+<li><b>MDS</b> sobre la matriz de co-ocurrencias (cuántos panelistas pusieron cada par de muestras juntas).</li>
+<li><b>Elipses de confianza</b> por bootstrap de panelistas: paneles virtuales llevados al mapa original con Procrustes (Cadoret y Husson, 2013).</li>
+<li><b>Clasificación</b> de las muestras (Ward) y <b>palabras</b>: frecuencias, <code>descfreq</code> por muestra y palabras por grupo.</li>
+<li><b>Panelistas</b>: cantidad de grupos, acuerdo con la clasificación (índice de Rand ajustado) y peso en DISTATIS.</li>
+</ul>
+
+<h5>Precauciones</h5>
+<ul>
+<li>Las distancias del mapa dicen qué tan seguido se juntaron las muestras, no cuánto difieren en un atributo: para eso sirven las palabras.</li>
+<li>Panelistas que hacen pocos grupos (2) aportan poca información; muchos grupos de una muestra, también.</li>
+</ul>
+
+<h5>Bibliografía</h5>
+<ul>
+<li>Chollet, S., Valentin, D. y Abdi, H. (2014). Free sorting task. En Varela, P. y Ares, G. (eds.), <i>Novel Techniques in Sensory Characterization and Consumer Profiling</i>. CRC Press.</li>
+<li>Cadoret, M., Lê, S. y Pagès, J. (2009). A factorial approach for sorting task data (FAST). <i>Food Quality and Preference</i>, 20, 410–417.</li>
+<li>Abdi, H., Valentin, D., Chollet, S. y Chrea, C. (2007). Analyzing assessors and products in sorting tasks: DISTATIS, theory and applications. <i>Food Quality and Preference</i>, 18, 627–640.</li>
+<li>Cadoret, M. y Husson, F. (2013). Construction and evaluation of confidence ellipses applied at sensory data. <i>Food Quality and Preference</i>, 28, 106–115.</li>
+</ul>
+</div>

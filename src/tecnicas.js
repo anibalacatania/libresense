@@ -7,6 +7,7 @@ export const TECNICAS = {
   flash: { nombre: 'Perfil Flash', corto: 'Flash', color: 'bg-amber-100 text-amber-800' },
   napping: { nombre: 'Napping (mapeo proyectivo)', corto: 'Napping', color: 'bg-emerald-100 text-emerald-800' },
   cata: { nombre: 'CATA con aceptabilidad', corto: 'CATA', color: 'bg-sky-100 text-sky-800' },
+  sorting: { nombre: 'Sorting (agrupamiento libre)', corto: 'Sorting', color: 'bg-violet-100 text-violet-800' },
 };
 // palabra para la lista fija de cada técnica
 export const palabraLista = t => (t === 'rata' ? 'descriptores' : t === 'cata' ? 'términos' : 'atributos');
