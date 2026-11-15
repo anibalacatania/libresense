@@ -1435,7 +1435,7 @@ function AdminApp() {
         </div>
         {vista.tipo === 'lista' && <ListaEstudios rol={rol} yo={usuario.email} abrir={id => setVista({ tipo: 'estudio', id })} nuevo={() => setVista({ tipo: 'nuevo' })} />}
         {vista.tipo === 'nuevo' && <NuevoEstudio creado={id => setVista({ tipo: 'estudio', id })} cancelar={() => setVista({ tipo: 'lista' })} />}
-        {vista.tipo === 'estudio' && <EstudioAdmin eid={vista.id} volver={() => setVista({ tipo: 'lista' })} />}
+        {vista.tipo === 'estudio' && <EstudioAdmin eid={vista.id} rol={rol} yo={usuario.email} volver={() => setVista({ tipo: 'lista' })} />}
         {vista.tipo === 'admins' && rol === 'super' && <Administradores yo={usuario.email} />}
       </div>
     </div>
@@ -1446,7 +1446,8 @@ function ListaEstudios({ abrir, nuevo, rol, yo }) {
   const [lista, setLista] = useState(null);
   const [msg, setMsg] = useState(null);
   // el administrador total ve todos; los demás, solo los que crearon (además lo controlan las reglas de Firebase)
-  useEffect(() => { datos.listarEstudios().then(l => setLista(rol === 'super' ? l : l.filter(e => e.dueno === yo))).catch(e => setMsg({ t: 'error', m: textoError(e) })); }, []);
+  // y los que el administrador total compartió con ellos (solo lectura)
+  useEffect(() => { datos.listarEstudios().then(l => setLista(rol === 'super' ? l : l.filter(e => e.dueno === yo || (e.compartido || []).includes(yo)))).catch(e => setMsg({ t: 'error', m: textoError(e) })); }, []);
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -1466,6 +1467,8 @@ function ListaEstudios({ abrir, nuevo, rol, yo }) {
                 {e.sesiones.length} sesiones · {e.panelistas.length} panelistas · {e.tecnica === 'flash' ? 'descriptores propios' : e.tecnica === 'napping' ? 'mapeo' : e.tecnica === 'sorting' ? 'agrupamiento' : `${e.atributos.length} ${palabraLista(e.tecnica)}`}</p>
               {e.creado && <p className="text-xs text-gray-400 mt-1">Creado {new Date(e.creado).toLocaleDateString('es-AR')}
                 {rol === 'super' && e.dueno && e.dueno !== yo && <> · por <b className="text-gray-500">{e.dueno}</b></>}</p>}
+              {rol === 'super' && (e.compartido || []).length > 0 && <p className="text-xs text-sky-700 mt-1">Compartido con {e.compartido.join(', ')}</p>}
+              {rol !== 'super' && e.dueno !== yo && <p className="text-xs mt-1"><span className="bg-sky-100 text-sky-800 font-semibold rounded-full px-2 py-0.5">Compartido con vos · solo lectura</span></p>}
             </button>))}
           </div>}
     </div>
@@ -1807,7 +1810,7 @@ function NuevoEstudio({ creado, cancelar }) {
   );
 }
 
-function EstudioAdmin({ eid, volver }) {
+function EstudioAdmin({ eid, volver, rol, yo }) {
   const [est, setEst] = useState(null);
   const [priv, setPriv] = useState(null);
   const [tab, setTab] = useState('progreso');
@@ -1818,7 +1821,9 @@ function EstudioAdmin({ eid, volver }) {
   };
   useEffect(() => { recargar(); }, [eid]);
   if (!est || !priv) return <div><Mensaje msg={msg}/><p className="text-gray-500">Cargando…</p></div>;
-  const tabs = [['progreso', 'Progreso'], ['servicio', 'Planilla de servicio'], ['analisis', 'Análisis en vivo'], ['resultados', 'Resultados'], ['config', 'Configuración']];
+  // un estudio compartido por el administrador total se ve, pero no se configura
+  const soloLectura = rol !== 'super' && est.dueno !== yo;
+  const tabs = [['progreso', 'Progreso'], ['servicio', 'Planilla de servicio'], ['analisis', 'Análisis en vivo'], ['resultados', 'Resultados'], ...(soloLectura ? [] : [['config', 'Configuración']])];
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3 mb-3 no-print">
@@ -1827,6 +1832,7 @@ function EstudioAdmin({ eid, volver }) {
         <span className={`text-xs font-bold px-2 py-1 rounded-full ${(TECNICAS[est.tecnica] || TECNICAS.descriptiva).color}`}>{nombreTecnica(est.tecnica)}</span>
         {est.ordenFijo && <span className="text-xs font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-800" title="Sin Williams ni códigos: todos prueban en el mismo orden">Orden fijo (didáctico)</span>}
         <span className={`text-xs font-bold px-2 py-1 rounded-full ${est.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'}`}>{est.activo ? 'Activo' : 'Cerrado'}</span>
+        {soloLectura && <span className="text-xs font-bold px-2 py-1 rounded-full bg-sky-100 text-sky-800" title={`Compartido por el administrador total${est.dueno ? '; creado por ' + est.dueno : ''}`}>Compartido con vos · solo lectura</span>}
       </div>
       <div className="flex gap-2 border-b mb-5 no-print overflow-x-auto">
         {tabs.map(([k, t]) => (
@@ -1838,7 +1844,7 @@ function EstudioAdmin({ eid, volver }) {
       {tab === 'servicio' && <Servicio est={est} priv={priv} />}
       {tab === 'analisis' && (est.tecnica === 'sorting' ? <AnalisisSorting eid={eid} est={est} priv={priv} /> : est.tecnica === 'cata' ? <AnalisisCata eid={eid} est={est} priv={priv} /> : est.tecnica === 'flash' ? <AnalisisFlash eid={eid} est={est} priv={priv} /> : est.tecnica === 'napping' ? <AnalisisNapping eid={eid} est={est} priv={priv} /> : <Analisis eid={eid} est={est} priv={priv} />)}
       {tab === 'resultados' && (est.tecnica === 'sorting' ? <ResultadosSorting eid={eid} est={est} priv={priv} /> : est.tecnica === 'flash' ? <ResultadosFlash eid={eid} est={est} priv={priv} /> : est.tecnica === 'napping' ? <ResultadosNapping eid={eid} est={est} priv={priv} /> : <Resultados eid={eid} est={est} priv={priv} />)}
-      {tab === 'config' && <Configuracion eid={eid} est={est} recargar={recargar} borrado={volver} />}
+      {tab === 'config' && !soloLectura && <Configuracion eid={eid} est={est} rol={rol} recargar={recargar} borrado={volver} />}
     </div>
   );
 }
@@ -3045,7 +3051,39 @@ res <- fast(f, sep.words = " ")                # FAST: MCA + análisis de las pa
   );
 }
 
-function Configuracion({ eid, est, recargar, borrado }) {
+// Compartir un estudio con administradores puntuales (solo el administrador total): lo ven, no lo modifican
+function Compartir({ eid, est, recargar }) {
+  const [admins, setAdmins] = useState(null);
+  const [sel, setSel] = useState(est.compartido || []);
+  const [msg, setMsg] = useState(null);
+  const [ocupado, setOcupado] = useState(false);
+  useEffect(() => { datos.listarAdmins().then(l => setAdmins(l.filter(a => a.rol === 'admin' && a.email !== est.dueno))).catch(e => setMsg({ t: 'error', m: textoError(e) })); }, []);
+  const cambio = JSON.stringify([...sel].sort()) !== JSON.stringify([...(est.compartido || [])].sort());
+  const guardar = async () => {
+    setOcupado(true); setMsg(null);
+    try { await datos.actualizarEstudio(eid, { compartido: [...sel].sort() }); await recargar(); setMsg({ t: 'ok', m: sel.length ? 'Listo: lo pueden ver ' + sel.join(', ') + '.' : 'El estudio ya no está compartido.' }); }
+    catch (e) { setMsg({ t: 'error', m: textoError(e) }); }
+    finally { setOcupado(false); }
+  };
+  return (
+    <section>
+      <h3 className="font-bold text-gray-800 mb-1">Compartir con administradores</h3>
+      <p className="text-sm text-gray-600 mb-2">Los administradores elegidos ven este estudio en su lista: progreso, planilla, análisis en vivo, resultados y análisis en R.
+        <b> No lo pueden modificar, cerrar ni borrar.</b>{est.dueno && est.dueno !== datos.emailActual() ? <> Lo creó {est.dueno}, que ya lo ve.</> : ''}</p>
+      {!admins ? <p className="text-sm text-gray-500">Cargando administradores…</p>
+        : !admins.length ? <p className="text-sm text-gray-500">No hay otros administradores con rol “solo sus estudios”. Se agregan en Administradores.</p>
+        : <div className="space-y-1 mb-3">{admins.map(a => (
+            <label key={a.email} className="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" className="w-4 h-4" checked={sel.includes(a.email)}
+                onChange={e => setSel(x => e.target.checked ? [...new Set([...x, a.email])] : x.filter(y => y !== a.email))} />{a.email}</label>))}
+          </div>}
+      {admins && admins.length > 0 && <button disabled={!cambio || ocupado} onClick={guardar} className={btn + ' bg-sky-600 hover:bg-sky-700 text-white'}>{ocupado ? 'Guardando…' : 'Guardar'}</button>}
+      <div className="mt-2"><Mensaje msg={msg}/></div>
+    </section>
+  );
+}
+
+function Configuracion({ eid, est, rol, recargar, borrado }) {
   const [nombre, setNombre] = useState(est.nombre);
   const [confirmaTxt, setConfirmaTxt] = useState('');
   const [msg, setMsg] = useState(null);
@@ -3084,6 +3122,7 @@ function Configuracion({ eid, est, recargar, borrado }) {
             className={btn + ' bg-purple-600 hover:bg-purple-700 text-white'}>Guardar</button>
         </div>
       </section>
+      {rol === 'super' && <Compartir eid={eid} est={est} recargar={recargar} />}
       <section className="border-2 border-amber-300 rounded-xl p-4">
         <h3 className="font-bold text-amber-800 mb-2">Borrar los datos (empezar de cero)</h3>
         <p className="text-sm text-gray-700 mb-2">

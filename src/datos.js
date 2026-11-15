@@ -183,7 +183,7 @@ function limpiarEstudio(d) {
   return {
     nombre: d.nombre || 'Estudio', tecnica: d.tecnica || 'descriptiva', activo: !!d.activo,
     atributos: d.atributos || [], sesiones: d.sesiones || [], panelistas: d.panelistas || [],
-    estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, sorting: d.sorting || null, ordenFijo: !!d.ordenFijo, reinicio: d.reinicio || 0, dueno: d.dueno || '',
+    estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, sorting: d.sorting || null, ordenFijo: !!d.ordenFijo, compartido: d.compartido || [], reinicio: d.reinicio || 0, dueno: d.dueno || '',
     creado: d.creado && d.creado.toDate ? d.creado.toDate().toISOString() : null,
   };
 }

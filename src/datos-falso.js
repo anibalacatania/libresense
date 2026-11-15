@@ -17,13 +17,15 @@ function notificar() { persistir(); subs.forEach(f => f()); }
 const esAdmin = () => !!(st.usuario && st.docs['admins/' + st.usuario.email]);
 const esSuper = () => esAdmin() && (st.docs['admins/' + st.usuario.email].rol || 'super') === 'super';
 const puede = eid => { const e = g('estudios/' + eid); return esSuper() || (esAdmin() && e && e.dueno === st.usuario.email); };
+// estudios compartidos por el administrador total: se pueden ver (no modificar)
+const leer = eid => { const e = g('estudios/' + eid); return puede(eid) || (esAdmin() && e && (e.compartido || []).includes(st.usuario.email)); };
 const denegar = () => { const e = new Error('Missing or insufficient permissions.'); e.code = 'permission-denied'; throw e; };
 
 export async function iniciar() { await dormir(5); }
 
 const limpiar = (id, d) => ({ id, nombre: d.nombre, tecnica: d.tecnica || 'descriptiva', activo: !!d.activo,
   atributos: d.atributos || [], sesiones: d.sesiones || [], panelistas: d.panelistas || [], creado: d.creado || null,
-  estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, sorting: d.sorting || null, ordenFijo: !!d.ordenFijo, reinicio: d.reinicio || 0, dueno: d.dueno || '' });
+  estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, sorting: d.sorting || null, ordenFijo: !!d.ordenFijo, compartido: d.compartido || [], reinicio: d.reinicio || 0, dueno: d.dueno || '' });
 
 export async function estudiosActivos() {
   await dormir(st.latencia);
@@ -106,9 +108,9 @@ export async function crearEstudio(est) {
     sesiones: est.sesiones.map(x => ({ Sesion: x.Sesion, Vinos: x.Vinos })), parametros: est.parametros || {} });
   return id;
 }
-export async function actualizarEstudio(eid, c) { if (!puede(eid)) denegar(); s('estudios/' + eid, { ...g('estudios/' + eid), ...c }); }
+export async function actualizarEstudio(eid, c) { if (!puede(eid) || ('compartido' in c && !esSuper())) denegar(); s('estudios/' + eid, { ...g('estudios/' + eid), ...c }); }
 export async function disenoPrivado(eid) {
-  if (!puede(eid)) denegar();
+  if (!leer(eid)) denegar();
   const x = g(`estudios/${eid}/privado/diseno`) || { filas: [], sesiones: [], parametros: {} };
   return { filas: x.filas.map(t => { const [Sesion, Valuador, Orden, CodigoProducto, NombreProducto, Rep] = t.split('|'); return { Sesion, Valuador, Orden: Number(Orden), CodigoProducto, NombreProducto, Rep: Number(Rep) }; }), sesiones: x.sesiones, parametros: x.parametros };
 }
@@ -117,7 +119,7 @@ export function observarProgresoEstudio(eid, cb) {
   subs.add(f); setTimeout(f, 0); return () => subs.delete(f);
 }
 export async function respuestasEstudio(eid) {
-  if (!puede(eid)) denegar();
+  if (!leer(eid)) denegar();
   return Object.keys(st.docs).filter(k => k.startsWith(`estudios/${eid}/respuestas/`)).map(k => clon(st.docs[k]));
 }
 export async function contarRespuestas(eid) { return Object.keys(st.docs).filter(k => k.startsWith(`estudios/${eid}/respuestas/`)).length; }

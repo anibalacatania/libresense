@@ -5,6 +5,8 @@ rules_version = '2';
 //   y escriben sus respuestas y su progreso SOLO si el estudio está activo y con formato válido.
 // - Administrador total (rol "super", o sin rol: el primero): todos los estudios y la lista de administradores.
 // - Administradores (rol "admin"): crean estudios y solo pueden ver y modificar los suyos (campo "dueno").
+//   El administrador total puede además compartir un estudio con administradores puntuales (campo "compartido"):
+//   esos lo pueden ver (diseño, respuestas, análisis) pero no modificar ni borrar.
 // - El primer administrador se registra solo, una única vez (meta/setup), como administrador total.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -26,6 +28,11 @@ service cloud.firestore {
       return esSuper() || (esAdmin()
         && get(/databases/$(database)/documents/estudios/$(e)).data.get('dueno', '') == request.auth.token.email);
     }
+    function compartidoCon(e) {
+      return esAdmin()
+        && request.auth.token.email in get(/databases/$(database)/documents/estudios/$(e)).data.get('compartido', []);
+    }
+    function puedeLeer(e) { return puedeVer(e) || compartidoCon(e); }
     function puedeEscribir(e) {
       return esSuper() || (esAdmin()
         && getAfter(/databases/$(database)/documents/estudios/$(e)).data.get('dueno', '') == request.auth.token.email);
@@ -73,7 +80,8 @@ service cloud.firestore {
     match /estudios/{e} {
       allow read: if true;
       allow create: if esAdmin() && request.resource.data.get('dueno', '') == request.auth.token.email;
-      allow update: if puedeVer(e) && request.resource.data.get('dueno', '') == resource.data.get('dueno', '');
+      allow update: if puedeVer(e) && request.resource.data.get('dueno', '') == resource.data.get('dueno', '')
+        && (esSuper() || request.resource.data.get('compartido', []) == resource.data.get('compartido', []));
       allow delete: if puedeVer(e);
 
       match /publico/{d} {
@@ -81,11 +89,12 @@ service cloud.firestore {
         allow write: if puedeEscribir(e);
       }
       match /privado/{d} {
-        allow read: if puedeVer(e);
+        allow read: if puedeLeer(e);
         allow write: if puedeEscribir(e);
       }
       match /respuestas/{r} {
-        allow read, delete: if puedeVer(e);
+        allow read: if puedeLeer(e);
+        allow delete: if puedeVer(e);
         allow create, update: if estudioActivo(e) && respuestaValida(r);
       }
       match /progreso/{v} {
