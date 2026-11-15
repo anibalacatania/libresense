@@ -13,8 +13,11 @@ Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pa
 ## Cómo se usa
 
 ### Administración (`#admin`)
-1. **Entrar con Google.** La primera vez, la primera cuenta que entra se registra como administradora.
-   Después se agregan otras cuentas en **Administradores**.
+1. **Entrar con Google.** La primera vez, la primera cuenta que entra se registra como **administrador total**.
+   Después se agregan otras cuentas en **Administradores**, con uno de dos roles:
+   - **Administrador**: crea estudios y solo ve y maneja los suyos (no ve los de los demás ni la lista de administradores).
+   - **Administrador total**: ve y maneja todos los estudios y administra la lista.
+   Las reglas de Firebase lo hacen cumplir (campo `dueno` en cada estudio; `rol` en `admins/{email}`; sin rol = total).
 2. **Nuevo estudio:** técnica, nombre, vinos (uno por línea), repeticiones, vinos por sesión, panelistas, descriptores →
    **Generar vista previa** → **Crear y publicar**.
    - Descriptores: uno por línea; opcionalmente agrupados con `# Modalidad` (ej. `# Aroma`) y `## Categoría` (ej. `## Cítricos`),

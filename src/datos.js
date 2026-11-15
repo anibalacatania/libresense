@@ -137,7 +137,7 @@ export async function rolAdmin() {
   const email = auth.currentUser && auth.currentUser.email;
   if (!email) return 'no';
   const a = await getDoc(doc(db, 'admins', email));
-  if (a.exists()) return 'admin';
+  if (a.exists()) return (a.data().rol || 'super') === 'super' ? 'super' : 'admin';
   const s = await getDoc(doc(db, 'meta', 'setup'));
   return s.exists() ? 'no' : 'registrable';
 }
@@ -145,18 +145,21 @@ export async function rolAdmin() {
 export async function registrarPrimerAdmin() {
   const email = auth.currentUser.email;
   const b = writeBatch(db);
-  b.set(doc(db, 'admins', email), { email, desde: serverTimestamp() });
+  b.set(doc(db, 'admins', email), { email, desde: serverTimestamp(), rol: 'super' });
   b.set(doc(db, 'meta', 'setup'), { listo: true });
   await b.commit();
 }
 
+// [{ email, rol: 'super' | 'admin' }]
 export async function listarAdmins() {
-  return (await getDocs(collection(db, 'admins'))).docs.map(d => d.id).sort();
+  return (await getDocs(collection(db, 'admins'))).docs.map(d => ({ email: d.id, rol: (d.data().rol || 'super') })).sort((a, b) => a.email.localeCompare(b.email));
 }
-export async function agregarAdmin(email) {
+export async function agregarAdmin(email, rol = 'admin') {
   const e = String(email).trim().toLowerCase();
-  await setDoc(doc(db, 'admins', e), { email: e, desde: serverTimestamp() });
+  await setDoc(doc(db, 'admins', e), { email: e, desde: serverTimestamp(), rol });
 }
+export async function cambiarRolAdmin(email, rol) { await updateDoc(doc(db, 'admins', email), { rol }); }
+export const emailActual = () => (auth && auth.currentUser ? auth.currentUser.email : null);
 export async function quitarAdmin(email) {
   const b = writeBatch(db); b.delete(doc(db, 'admins', email)); await b.commit();
 }
@@ -165,7 +168,7 @@ function limpiarEstudio(d) {
   return {
     nombre: d.nombre || 'Estudio', tecnica: d.tecnica || 'descriptiva', activo: !!d.activo,
     atributos: d.atributos || [], sesiones: d.sesiones || [], panelistas: d.panelistas || [],
-    estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, reinicio: d.reinicio || 0,
+    estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, reinicio: d.reinicio || 0, dueno: d.dueno || '',
     creado: d.creado && d.creado.toDate ? d.creado.toDate().toISOString() : null,
   };
 }
@@ -200,7 +203,7 @@ export async function crearEstudio(est) {
   const ref = doc(collection(db, 'estudios'));
   const d = docsDiseno(est);
   const b = writeBatch(db);
-  b.set(ref, { ...d.estudio, activo: true, creado: serverTimestamp() });
+  b.set(ref, { ...d.estudio, activo: true, creado: serverTimestamp(), dueno: auth.currentUser.email });
   b.set(doc(db, 'estudios', ref.id, 'publico', 'diseno'), d.publico);
   b.set(doc(db, 'estudios', ref.id, 'privado', 'diseno'), d.privado);
   await b.commit();

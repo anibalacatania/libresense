@@ -1101,7 +1101,7 @@ function AdminApp() {
     );
   }
 
-  if (rol !== 'admin') {
+  if (rol !== 'admin' && rol !== 'super') {
     return (
       <Tarjeta>
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Sin permiso</h1>
@@ -1118,25 +1118,26 @@ function AdminApp() {
           <h1 className="text-2xl font-bold text-gray-800 cursor-pointer" onClick={() => setVista({ tipo: 'lista' })}>LibreSense <span className="text-base font-normal text-gray-500">· Administración</span></h1>
           <div className="flex gap-3 items-center text-sm">
             <button onClick={() => setVista({ tipo: 'lista' })} className={vista.tipo === 'lista' ? 'font-bold text-purple-700' : 'text-purple-700 hover:underline'}>Estudios</button>
-            <button onClick={() => setVista({ tipo: 'admins' })} className={vista.tipo === 'admins' ? 'font-bold text-purple-700' : 'text-purple-700 hover:underline'}>Administradores</button>
+            {rol === 'super' && <button onClick={() => setVista({ tipo: 'admins' })} className={vista.tipo === 'admins' ? 'font-bold text-purple-700' : 'text-purple-700 hover:underline'}>Administradores</button>}
             <a href="#" className="text-purple-700 hover:underline">App de panelistas</a>
-            <span className="text-gray-400">{usuario.email}</span>
+            <span className="text-gray-400">{usuario.email}{rol === 'admin' && <span className="ml-1 text-[11px] bg-gray-100 text-gray-600 rounded px-1.5 py-0.5">ve solo sus estudios</span>}</span>
             <button onClick={datos.salir} className="text-gray-500 hover:underline">Salir</button>
           </div>
         </div>
-        {vista.tipo === 'lista' && <ListaEstudios abrir={id => setVista({ tipo: 'estudio', id })} nuevo={() => setVista({ tipo: 'nuevo' })} />}
+        {vista.tipo === 'lista' && <ListaEstudios rol={rol} yo={usuario.email} abrir={id => setVista({ tipo: 'estudio', id })} nuevo={() => setVista({ tipo: 'nuevo' })} />}
         {vista.tipo === 'nuevo' && <NuevoEstudio creado={id => setVista({ tipo: 'estudio', id })} cancelar={() => setVista({ tipo: 'lista' })} />}
         {vista.tipo === 'estudio' && <EstudioAdmin eid={vista.id} volver={() => setVista({ tipo: 'lista' })} />}
-        {vista.tipo === 'admins' && <Administradores yo={usuario.email} />}
+        {vista.tipo === 'admins' && rol === 'super' && <Administradores yo={usuario.email} />}
       </div>
     </div>
   );
 }
 
-function ListaEstudios({ abrir, nuevo }) {
+function ListaEstudios({ abrir, nuevo, rol, yo }) {
   const [lista, setLista] = useState(null);
   const [msg, setMsg] = useState(null);
-  useEffect(() => { datos.listarEstudios().then(setLista).catch(e => setMsg({ t: 'error', m: textoError(e) })); }, []);
+  // el administrador total ve todos; los demás, solo los que crearon (además lo controlan las reglas de Firebase)
+  useEffect(() => { datos.listarEstudios().then(l => setLista(rol === 'super' ? l : l.filter(e => e.dueno === yo))).catch(e => setMsg({ t: 'error', m: textoError(e) })); }, []);
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -1154,7 +1155,8 @@ function ListaEstudios({ abrir, nuevo }) {
               </div>
               <p className="text-sm text-gray-600"><span className={`text-xs font-bold px-2 py-0.5 rounded-full mr-1 ${(TECNICAS[e.tecnica] || TECNICAS.descriptiva).color}`}>{(TECNICAS[e.tecnica] || TECNICAS.descriptiva).corto}</span>
                 {e.sesiones.length} sesiones · {e.panelistas.length} panelistas · {e.tecnica === 'flash' ? 'descriptores propios' : e.tecnica === 'napping' ? 'mapeo' : `${e.atributos.length} ${e.tecnica === 'rata' ? 'descriptores' : 'atributos'}`}</p>
-              {e.creado && <p className="text-xs text-gray-400 mt-1">Creado {new Date(e.creado).toLocaleDateString('es-AR')}</p>}
+              {e.creado && <p className="text-xs text-gray-400 mt-1">Creado {new Date(e.creado).toLocaleDateString('es-AR')}
+                {rol === 'super' && e.dueno && e.dueno !== yo && <> · por <b className="text-gray-500">{e.dueno}</b></>}</p>}
             </button>))}
           </div>}
     </div>
@@ -2298,27 +2300,43 @@ function Configuracion({ eid, est, recargar, borrado }) {
 function Administradores({ yo }) {
   const [lista, setLista] = useState(null);
   const [nuevo, setNuevo] = useState('');
+  const [rolNuevo, setRolNuevo] = useState('admin');
   const [msg, setMsg] = useState(null);
   const cargar = () => datos.listarAdmins().then(setLista).catch(e => setMsg({ t: 'error', m: textoError(e) }));
   useEffect(() => { cargar(); }, []);
   const valido = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(nuevo.trim());
+  const hacer = async (fn) => { setMsg(null); try { await fn(); cargar(); } catch (x) { setMsg({ t: 'error', m: textoError(x) }); } };
+  const ROLES = { admin: 'Administrador (solo sus estudios)', super: 'Administrador total' };
   return (
-    <div className="max-w-xl">
+    <div className="max-w-2xl">
       <h2 className="text-xl font-bold text-gray-800 mb-1">Administradores</h2>
-      <p className="text-sm text-gray-600 mb-4">Cuentas de Google que pueden crear estudios y ver resultados.</p>
+      <p className="text-sm text-gray-600 mb-1">Cuentas de Google que pueden entrar a la administración.</p>
+      <ul className="text-sm text-gray-600 mb-4 list-disc ml-5">
+        <li><b>Administrador:</b> crea estudios y solo ve y maneja los suyos (resultados, análisis, configuración). No ve los de los demás ni esta lista.</li>
+        <li><b>Administrador total:</b> ve y maneja todos los estudios y agrega o quita administradores.</li>
+      </ul>
       <Mensaje msg={msg}/>
       {!lista ? <p className="text-gray-500">Cargando…</p> : (
-        <ul className="divide-y border rounded-lg mb-4">{lista.map(e => (
-          <li key={e} className="flex items-center justify-between p-3">
-            <span>{e}{e === yo && <span className="text-xs text-gray-400 ml-2">(vos)</span>}</span>
-            {e !== yo && <button onClick={async () => { try { await datos.quitarAdmin(e); cargar(); } catch (x) { setMsg({ t: 'error', m: textoError(x) }); } }}
-              className="text-sm text-red-600 hover:underline">Quitar</button>}
+        <ul className="divide-y border rounded-lg mb-4">{lista.map(a => (
+          <li key={a.email} className="flex flex-wrap items-center justify-between gap-2 p-3">
+            <span>{a.email}{a.email === yo && <span className="text-xs text-gray-400 ml-2">(vos)</span>}</span>
+            {a.email === yo
+              ? <span className="text-xs font-bold px-2 py-1 rounded-full bg-purple-100 text-purple-700">{ROLES[a.rol]}</span>
+              : <span className="flex items-center gap-3">
+                  <select value={a.rol} onChange={e => hacer(() => datos.cambiarRolAdmin(a.email, e.target.value))} className="border rounded px-2 py-1 text-sm">
+                    {Object.entries(ROLES).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+                  </select>
+                  <button onClick={() => hacer(() => datos.quitarAdmin(a.email))} className="text-sm text-red-600 hover:underline">Quitar</button>
+                </span>}
           </li>))}
         </ul>
       )}
-      <div className="flex gap-2">
-        <input className={inp + ' mt-0'} value={nuevo} onChange={e => setNuevo(e.target.value)} placeholder="correo@gmail.com" />
-        <button disabled={!valido} onClick={async () => { try { await datos.agregarAdmin(nuevo); setNuevo(''); cargar(); } catch (x) { setMsg({ t: 'error', m: textoError(x) }); } }}
+      <div className="flex flex-wrap gap-2">
+        <input className={inp + ' mt-0 flex-1 min-w-[14rem]'} value={nuevo} onChange={e => setNuevo(e.target.value)} placeholder="correo@gmail.com" />
+        <select value={rolNuevo} onChange={e => setRolNuevo(e.target.value)} className="border-2 border-gray-200 rounded-lg px-2 text-sm">
+          {Object.entries(ROLES).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+        </select>
+        <button disabled={!valido} onClick={() => hacer(async () => { await datos.agregarAdmin(nuevo, rolNuevo); setNuevo(''); setRolNuevo('admin'); })}
           className={btn + ' bg-purple-600 hover:bg-purple-700 text-white whitespace-nowrap'}>Agregar</button>
       </div>
     </div>

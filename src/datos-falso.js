@@ -15,13 +15,15 @@ const del = p => { delete st.docs[p]; notificar(p); };
 const subs = new Set();
 function notificar() { persistir(); subs.forEach(f => f()); }
 const esAdmin = () => !!(st.usuario && st.docs['admins/' + st.usuario.email]);
+const esSuper = () => esAdmin() && (st.docs['admins/' + st.usuario.email].rol || 'super') === 'super';
+const puede = eid => { const e = g('estudios/' + eid); return esSuper() || (esAdmin() && e && e.dueno === st.usuario.email); };
 const denegar = () => { const e = new Error('Missing or insufficient permissions.'); e.code = 'permission-denied'; throw e; };
 
 export async function iniciar() { await dormir(5); }
 
 const limpiar = (id, d) => ({ id, nombre: d.nombre, tecnica: d.tecnica || 'descriptiva', activo: !!d.activo,
   atributos: d.atributos || [], sesiones: d.sesiones || [], panelistas: d.panelistas || [], creado: d.creado || null,
-  estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, reinicio: d.reinicio || 0 });
+  estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, reinicio: d.reinicio || 0, dueno: d.dueno || '' });
 
 export async function estudiosActivos() {
   await dormir(st.latencia);
@@ -62,16 +64,18 @@ export async function entrarConGoogle() { st.usuario = st.proximoUsuario || { em
 export async function salir() { st.usuario = null; persistir(); oyUsuario && oyUsuario(null); }
 export async function rolAdmin() {
   if (!st.usuario) return 'no';
-  if (esAdmin()) return 'admin';
+  if (esAdmin()) return esSuper() ? 'super' : 'admin';
   return st.docs['meta/setup'] ? 'no' : 'registrable';
 }
 export async function registrarPrimerAdmin() {
   if (st.docs['meta/setup']) denegar();
-  s('admins/' + st.usuario.email, { email: st.usuario.email }); s('meta/setup', { listo: true });
+  s('admins/' + st.usuario.email, { email: st.usuario.email, rol: 'super' }); s('meta/setup', { listo: true });
 }
-export async function listarAdmins() { if (!esAdmin()) denegar(); return Object.keys(st.docs).filter(k => k.startsWith('admins/')).map(k => k.slice(7)).sort(); }
-export async function agregarAdmin(e) { if (!esAdmin()) denegar(); s('admins/' + e.trim().toLowerCase(), { email: e }); }
-export async function quitarAdmin(e) { if (!esAdmin() || e === st.usuario.email) denegar(); del('admins/' + e); }
+export async function listarAdmins() { if (!esSuper()) denegar(); return Object.keys(st.docs).filter(k => k.startsWith('admins/')).map(k => ({ email: k.slice(7), rol: st.docs[k].rol || 'super' })).sort((a, b) => a.email.localeCompare(b.email)); }
+export async function agregarAdmin(e, rol = 'admin') { if (!esSuper()) denegar(); const m = e.trim().toLowerCase(); s('admins/' + m, { email: m, rol }); }
+export async function cambiarRolAdmin(e, rol) { if (!esSuper() || e === st.usuario.email) denegar(); s('admins/' + e, { ...g('admins/' + e), rol }); }
+export async function quitarAdmin(e) { if (!esSuper() || e === st.usuario.email) denegar(); del('admins/' + e); }
+export const emailActual = () => (st.usuario ? st.usuario.email : null);
 export async function listarEstudios() {
   return Object.keys(st.docs).filter(k => /^estudios\/[^/]+$/.test(k)).map(k => limpiar(k.split('/')[1], st.docs[k]))
     .sort((a, b) => String(b.creado).localeCompare(String(a.creado)));
@@ -82,15 +86,15 @@ export async function crearEstudio(est) {
   if (!esAdmin()) denegar();
   const id = 'est' + (++n) + '_' + Date.now().toString(36);
   s(`estudios/${id}`, { nombre: est.nombre, tecnica: est.tecnica || 'descriptiva', activo: true, atributos: est.atributos, estructura: est.estructura || null, escala: est.escala || 3, ordenAzar: !!est.ordenAzar, sugerencias: est.sugerencias || [], napping: est.napping || null,
-    sesiones: est.sesiones.map(x => ({ Sesion: x.Sesion, NMuestras: x.NMuestras })), panelistas: est.panelistas, creado: new Date().toISOString() });
+    sesiones: est.sesiones.map(x => ({ Sesion: x.Sesion, NMuestras: x.NMuestras })), panelistas: est.panelistas, creado: new Date().toISOString(), dueno: st.usuario.email });
   s(`estudios/${id}/publico/diseno`, { filas: est.diseno.map(d => `${d.Sesion}|${d.Valuador}|${d.Orden}|${d.CodigoProducto}`) });
   s(`estudios/${id}/privado/diseno`, { filas: est.diseno.map(d => `${d.Sesion}|${d.Valuador}|${d.Orden}|${d.CodigoProducto}|${d.NombreProducto}|${d.Rep}`),
     sesiones: est.sesiones.map(x => ({ Sesion: x.Sesion, Vinos: x.Vinos })), parametros: est.parametros || {} });
   return id;
 }
-export async function actualizarEstudio(eid, c) { if (!esAdmin()) denegar(); s('estudios/' + eid, { ...g('estudios/' + eid), ...c }); }
+export async function actualizarEstudio(eid, c) { if (!puede(eid)) denegar(); s('estudios/' + eid, { ...g('estudios/' + eid), ...c }); }
 export async function disenoPrivado(eid) {
-  if (!esAdmin()) denegar();
+  if (!puede(eid)) denegar();
   const x = g(`estudios/${eid}/privado/diseno`) || { filas: [], sesiones: [], parametros: {} };
   return { filas: x.filas.map(t => { const [Sesion, Valuador, Orden, CodigoProducto, NombreProducto, Rep] = t.split('|'); return { Sesion, Valuador, Orden: Number(Orden), CodigoProducto, NombreProducto, Rep: Number(Rep) }; }), sesiones: x.sesiones, parametros: x.parametros };
 }
@@ -99,11 +103,11 @@ export function observarProgresoEstudio(eid, cb) {
   subs.add(f); setTimeout(f, 0); return () => subs.delete(f);
 }
 export async function respuestasEstudio(eid) {
-  if (!esAdmin()) denegar();
+  if (!puede(eid)) denegar();
   return Object.keys(st.docs).filter(k => k.startsWith(`estudios/${eid}/respuestas/`)).map(k => clon(st.docs[k]));
 }
 export async function contarRespuestas(eid) { return Object.keys(st.docs).filter(k => k.startsWith(`estudios/${eid}/respuestas/`)).length; }
-export async function borrarEstudio(eid) { if (!esAdmin()) denegar(); Object.keys(st.docs).filter(k => k === `estudios/${eid}` || k.startsWith(`estudios/${eid}/`)).forEach(del); }
+export async function borrarEstudio(eid) { if (!puede(eid)) denegar(); Object.keys(st.docs).filter(k => k === `estudios/${eid}` || k.startsWith(`estudios/${eid}/`)).forEach(del); }
 export function observarRespuestas(eid, cb) {
   let vivo = true;
   const tick = () => { if (!vivo) return; respuestasEstudio(eid).then(cb).catch(() => {}); };
@@ -134,7 +138,7 @@ export const proyectoId = () => 'demo';
 export async function tokenAdmin() { return esAdmin() ? 'TOKEN-OK' : null; }
 
 export async function borrarRespuestas(eid) {
-  if (!esAdmin()) denegar();
+  if (!puede(eid)) denegar();
   const ks = Object.keys(st.docs).filter(k => k.startsWith(`estudios/${eid}/respuestas/`) || k.startsWith(`estudios/${eid}/progreso/`));
   const n = ks.filter(k => k.includes('/respuestas/')).length;
   ks.forEach(del); s('estudios/' + eid, { ...g('estudios/' + eid), reinicio: Date.now() });
