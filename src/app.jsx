@@ -1913,6 +1913,7 @@ function AnalisisCata({ eid, est, priv }) {
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <span className="text-gray-700"><b>{res.N}</b> evaluaciones · <b>{res.consumidores}</b> consumidores · <b>{res.vinos.length}</b> vinos{res.ideal ? <> · <b>{res.ideal.n}</b> ideales</> : ''}</span>
         <span className="text-xs text-emerald-600">● en vivo</span>
+        <span className="ml-auto"><BotonShiny eid={eid} tecnica="cata" setMsg={setMsg}/></span>
         {est.sesiones.length > 1 && <select value={sesion} onChange={e => setSesion(e.target.value)} className="border-2 border-gray-200 rounded-lg px-2 py-1">
           <option value="">Todas las sesiones</option>
           {est.sesiones.map(s => <option key={s.Sesion} value={s.Sesion}>Sesión {s.Sesion}</option>)}

@@ -1,0 +1,85 @@
+---
+title: "CATA con aceptabilidad: `r params$nombre`"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+params:
+  ancho: NULL
+  terminos: NULL
+  gusto: TRUE
+  nombre: "Estudio"
+  sesiones: NULL
+  ajuste: "none"
+  umbral: 20
+  solo_sig: TRUE
+  k: 2
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 9, fig.height = 7, dpi = 150)
+suppressMessages({ library(FactoMineR); library(ggplot2) })
+for (f in list.files("R", pattern = "\\.R$", full.names = TRUE)) source(f, encoding = "UTF-8")
+A <- armar(params$ancho, params$terminos, params$gusto, params$sesiones)
+co <- cochran(A, params$ajuste)
+ag <- if (A$gusto) agrado(A) else NULL
+tabla_md <- function(x) knitr::kable(x, row.names = FALSE)
+```
+
+## Datos
+
+- Consumidores: **`r length(A$consumidores)`** · Evaluaciones: **`r nrow(A$ev)`** · Productos: **`r length(A$productos)`** · Términos: **`r length(A$terminos)`**
+- `r if (is.null(A$ideal)) "Sin pregunta de producto ideal." else paste0("Producto ideal: ", nrow(A$ideal), " consumidores.")`
+- Términos marcados por evaluación: `r sprintf("%.1f", mean(rowSums(A$ev[, A$terminos, drop = FALSE])))` en promedio.
+
+```{r, results = "asis", eval = A$gusto}
+cat("## Aceptabilidad\n\n")
+print(g_agrado(ag))
+cat("\n\n")
+print(tabla_md(ag$tabla[order(-ag$tabla$Media), ]))
+cat("\n\nANOVA (producto + consumidor): ")
+cat(sprintf("F = %.2f, p = %s. Letras distintas: diferencias significativas (Tukey, p < 0,05).\n\n", ag$anova[1, "F value"], format.pval(ag$anova[1, "Pr(>F)"], digits = 3)))
+print(g_distribucion(ag))
+```
+
+## Frecuencia de citación
+
+Q de Cochran por término; en los significativos, letras de McNemar de a pares (`r c(none = "sin ajuste", holm = "ajuste de Holm", bonferroni = "ajuste de Bonferroni")[[params$ajuste]]`).
+
+```{r, fig.height = 8}
+g_frecuencias(A, co)
+```
+
+```{r}
+tabla_md(tabla_terminos(A, co))
+```
+
+## Mapa de productos y términos (análisis de correspondencias)
+
+```{r}
+ca <- tryCatch(correr_ca(A, params$solo_sig, co, TRUE, A$gusto), error = function(e) NULL)
+if (!is.null(ca)) g_ca(ca)
+```
+
+```{r, results = "asis", eval = A$gusto}
+cat("## Impacto de los términos en la aceptabilidad\n\n")
+im <- impacto(A)
+print(g_impacto(im))
+cat("\n\n")
+print(tabla_md(im[order(-im$Diferencia), ]))
+```
+
+```{r, results = "asis", eval = A$gusto && !is.null(A$ideal)}
+cat("## Penalidades respecto del ideal\n\n")
+pe <- penal_ideal(A, "", params$umbral)
+print(g_penal(pe, params$umbral))
+cat("\n\n")
+print(tabla_md(pe[pe$Conclusion != "", c("Termino", "Falta %", "Caída si falta", "Sobra %", "Caída si sobra", "Conclusion")]))
+cat("\n\n")
+print(g_brecha(brecha_ideal(A)))
+```
+
+```{r, results = "asis", eval = A$gusto}
+s <- tryCatch(segmentos(A, params$k), error = function(e) NULL)
+pc <- tryCatch(mapa_pref(A), error = function(e) NULL)
+if (!is.null(pc) || !is.null(s)) cat("## Consumidores\n\n")
+if (!is.null(pc)) { print(g_pref(pc, if (!is.null(s)) s$cl)); cat("\n\n") }
+if (!is.null(s)) print(g_segmentos(s))
+```

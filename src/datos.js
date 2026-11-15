@@ -18,7 +18,7 @@ import {
 } from 'firebase/firestore';
 // El inicio de sesión (firebase/auth) solo lo usa el administrador: se carga aparte, a pedido,
 // así la app de los panelistas es más liviana.
-let db, auth, app, A, urlShiny = null, urlShinyNapping = null;
+let db, auth, app, A, urlShiny = null, urlShinyNapping = null, urlShinyCata = null;
 async function cargarAuth() {
   if (!A) {
     A = await import('firebase/auth');
@@ -33,6 +33,7 @@ export async function iniciar() {
   app = initializeApp(cfg.firebase);
   urlShiny = cfg.shiny || null;
   urlShinyNapping = cfg.shinyNapping || null;
+  urlShinyCata = cfg.shinyCata || null;
   // Administración: sin caché en disco (siempre datos frescos y no comparte cola de escritura con
   // pestañas de panelista abiertas en la misma computadora).
   // Panelistas: guarda en el dispositivo; sin internet sigue funcionando y sube todo al volver.
@@ -117,7 +118,7 @@ export function guardarFlash(eid, { Sesion, Valuador, muestras, atributos, def }
 }
 
 // ------------------------------------------------------------- análisis en Shiny (R)
-export const configShiny = (tecnica) => (tecnica === 'napping' ? urlShinyNapping : urlShiny);
+export const configShiny = (tecnica) => (tecnica === 'napping' ? urlShinyNapping : tecnica === 'cata' ? urlShinyCata : urlShiny);
 export const proyectoId = () => app.options.projectId;
 // token de la sesión del administrador (Firebase ID token, dura 1 hora)
 export async function tokenAdmin(forzar) {

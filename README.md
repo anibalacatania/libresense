@@ -31,6 +31,8 @@ Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pa
      Análisis en vivo: aceptabilidad (medias, % que gusta/disgusta, ANOVA vino + consumidor), frecuencias con Q de Cochran,
      análisis de correspondencias (como `FactoMineR::CA`, con el ideal como fila suplementaria), impacto de cada término en el
      agrado (t de Welch) y penalidades respecto del ideal (Ares et al., 2014: qué falta y qué sobra). Validado contra R.
+     Análisis completo en R: botón que abre https://acatania.shinyapps.io/cata/ (ver `shiny/cata/LEEME.md`): Tukey, McNemar
+     de a pares, mapa de preferencias interno, segmentos de consumidores, informe Word/HTML y Excel.
    - **Napping / mapeo proyectivo** (según Dehlholm, cap. 9 del mismo libro): todas las muestras en la sesión, con códigos
      de 3 cifras y orden de cata balanceado (Williams); duplicados ocultos opcionales. El panelista prueba de a una y
      **arrastra** cada muestra a una hoja (rectangular 60 × 40 cm, cuadrada 60 × 60 o redonda): cerca = parecidas.
