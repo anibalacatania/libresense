@@ -4,6 +4,8 @@ App web gratuita para análisis sensorial (antes "panel").
 
 App web para análisis sensorial con **varios estudios a la vez**, sesiones, repeticiones y diseño de Williams.
 Técnicas: **Análisis Descriptivo Cuantitativo** (escala 0–10), **RATA** (Rate-All-That-Apply), **Perfil Flash**, **Napping** (mapeo proyectivo), **CATA con aceptabilidad** (consumidores) y **Sorting** (agrupamiento libre).
+
+**Manual de uso (PDF):** [manual/LibreSense-manual.pdf](manual/LibreSense-manual.pdf) — también enlazado desde la app (administración y pantalla inicial). Se regenera con `node manual/fuente/generar_pdf.js`.
 Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pages.
 
 - **Panelistas:** https://anibalacatania.github.io/libresense/
@@ -33,7 +35,7 @@ Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pa
      panelista. Resultados: matriz de grupos (para `MCA`/`fast`), matriz con palabras (FAST), co-ocurrencias, formato largo y
      código R. Análisis completo en R: https://acatania.shinyapps.io/sorting/ (MCA, DISTATIS, MDS, elipses por bootstrap,
      clasificación, palabras, panelistas; ver `shiny/sorting/LEEME.md`).
-   - **CATA con aceptabilidad** (consumidores; Ares y Jaeger en el mismo libro): muestras de a una en orden Williams,
+   - **CATA con aceptabilidad** (consumidores; Meyners y Castura, cap. 11 del mismo libro): muestras de a una en orden Williams,
      primero escala hedónica de 9 puntos (opcional) y después todos los términos que describen la muestra (orden de términos
      al azar por consumidor). Opcional: **vino ideal** al final, una sola vez (se guarda con Orden 100 y código IDEAL).
      Análisis en vivo: aceptabilidad (medias, % que gusta/disgusta, ANOVA vino + consumidor), frecuencias con Q de Cochran,

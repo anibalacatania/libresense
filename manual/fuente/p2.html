@@ -1,0 +1,96 @@
+
+<!-- ===================================================================== 4 -->
+<h1 id="c4"><span class="num">4</span>Crear un estudio</h1>
+<p>En la lista de estudios tocá <b>+ Nuevo estudio</b>. El formulario cambia según la técnica elegida, pero la lógica es siempre la misma:
+completar los datos, tocar <b>Generar vista previa</b>, revisar el diseño y recién entonces <b>Crear y publicar este estudio</b>. Nada se publica hasta ese último paso,
+y el formulario recuerda lo que escribiste si cerrás la página.</p>
+<figure class="alto"><img src="img/nuevo.jpg"><figcaption>Nuevo estudio: técnica, vinos, repeticiones, panelistas, atributos y la vista previa del diseño por sesión.</figcaption></figure>
+
+<h2>Los datos comunes</h2>
+<table>
+  <tr><th style="width:26%">Campo</th><th>Qué es y cómo elegirlo</th></tr>
+  <tr><td><b>Nombre del estudio</b></td><td>Es lo que ven los panelistas al elegir el estudio. Se puede cambiar después en Configuración.</td></tr>
+  <tr><td><b>Vinos</b></td><td>Uno por línea (se puede pegar una columna de Excel). Son los nombres reales: <b>los panelistas nunca los ven</b>, solo ven códigos. No se pueden repetir ni contener el carácter “|”.</td></tr>
+  <tr><td><b>Repeticiones</b></td><td>Cuántas veces evalúa cada panelista cada vino. Con panel entrenado (ADC, RATA) se usan 2–3 para medir la repetibilidad; con consumidores, 1.</td></tr>
+  <tr><td><b>Vinos por sesión</b></td><td>Cuántas muestras prueba un panelista en una sesión (ADC, RATA, CATA). Con vinos, lo habitual es 4–8 para evitar la fatiga. La app reparte vinos × repeticiones en sesiones y muestra el resultado (por ejemplo “24 muestras → 3 sesiones (8 + 8 + 8)”). Un vino no se repite dentro de una sesión.</td></tr>
+  <tr><td><b>Repartir parejo</b></td><td>Si la cuenta no es exacta, reparte las muestras de forma pareja (6+6+6+6 en lugar de 7+7+7+3).</td></tr>
+  <tr><td><b>Panelistas</b></td><td>Cantidad de puestos. Se numeran V1, V2… Conviene que sea múltiplo del número que sugiere la app para que el diseño quede balanceado (ver Williams, abajo).</td></tr>
+  <tr><td><b>Semilla</b></td><td>Número que fija el sorteo. Con la misma semilla y los mismos datos se obtiene exactamente el mismo diseño y los mismos códigos (sirve para documentar o rehacer un estudio).</td></tr>
+</table>
+
+<h2>El diseño de Williams</h2>
+<p>En las técnicas en las que las muestras se prueban de a una (ADC, RATA, CATA, Napping, Sorting), el orden de presentación importa: la primera muestra
+suele puntuarse distinto (efecto de posición) y cada muestra influye en la que viene después (efecto de arrastre). El <b>diseño de Williams</b> (un cuadrado latino
+balanceado) lo controla: cada muestra aparece la misma cantidad de veces en cada posición y <b>sigue a cada una de las otras la misma cantidad de veces</b>.</p>
+<ul>
+  <li>Con un número <b>par</b> de muestras por sesión, el diseño completo tiene tantas secuencias como muestras (por ejemplo, 6 muestras → 6 secuencias).</li>
+  <li>Con un número <b>impar</b> hacen falta el doble (5 muestras → 10 secuencias).</li>
+  <li>Cada panelista recibe una secuencia. Por eso la app avisa: <i>“para que el diseño quede completamente balanceado, el número de panelistas debería ser múltiplo de …”</i>.
+  Si no lo es, igual se puede usar: queda casi balanceado.</li>
+</ul>
+<p>Cada muestra de una sesión tiene un <b>código de 3 cifras</b> al azar, el mismo para todos los panelistas de esa sesión, y distinto en cada repetición. En el Perfil Flash
+las copas se identifican con <b>letras</b> (A, B, C…) y no se usa Williams porque todas las copas se presentan juntas (capítulo 9).</p>
+
+<h2>Atributos, descriptores y términos</h2>
+<p>En ADC, RATA y CATA la lista se escribe uno por línea. Se pueden agrupar con títulos:</p>
+<pre># Aroma
+## Frutal
+Frutos rojos
+Ciruela
+## Especiado
+Pimienta
+# Boca
+Acidez
+Astringencia</pre>
+<ul>
+  <li><code># Título</code> es una modalidad (Aroma, Boca…); <code>## Subtítulo</code> es una categoría dentro de ella. En la pantalla del panelista aparecen como encabezados.</li>
+  <li>Si un mismo descriptor aparece en dos grupos (Limón en Aroma y en Sabor), la columna de resultados se llama “Aroma: Limón” y “Sabor: Limón”.</li>
+  <li><b>Orden al azar</b>: los descriptores se mezclan dentro de cada grupo, de forma distinta para cada panelista pero siempre igual para el mismo panelista. Reduce el sesgo por posición en la lista; en CATA se activa solo.</li>
+</ul>
+
+<h2>Duplicados ocultos</h2>
+<p>En Perfil Flash, Napping y Sorting se puede servir una muestra dos veces en la misma sesión, con otro código, sin que el panelista lo sepa. Sirve para medir
+qué tan consistente es cada panelista: lo ideal es que la trate igual que su original. Se escriben en “Duplicados”, con el mismo nombre que en la lista de vinos,
+y en los resultados aparecen como “Vino (dup)”. Con uno o dos alcanza.</p>
+
+<!-- ===================================================================== 5 -->
+<h1 id="c5"><span class="num">5</span>El día de la evaluación</h1>
+<h2>1. Preparar el servicio: la planilla</h2>
+<p>En el estudio, la pestaña <b>Planilla de servicio</b> tiene, para cada sesión, la tabla <b>vino → código</b> (para rotular las copas) y la <b>bandeja de cada panelista</b>,
+con el orden en que tiene que recibir las muestras. Se imprime con el botón <b>Imprimir</b>. En el Perfil Flash trae además etiquetas recortables con las letras.</p>
+<figure class="medio"><img src="img/servicio.jpg"><figcaption>Planilla de servicio de un Perfil Flash: letra de cada vino y etiquetas para las copas.</figcaption></figure>
+
+<h2>2. Pasar el link a los panelistas</h2>
+<p>Los panelistas entran a <a href="https://anibalacatania.github.io/libresense/">anibalacatania.github.io/libresense</a>. Si hay un solo estudio activo, se abre directamente.
+Si hay varios, eligen el suyo. En <b>Configuración</b> está el <b>link directo</b> de cada estudio (con el botón Copiar), que abre ese estudio sin pasar por la lista:
+es ideal para mandarlo por WhatsApp o imprimirlo como código QR en la sala.</p>
+
+<h2>3. Lo que ve el panelista</h2>
+<div class="dos">
+  <figure class="movil"><img src="img/numero.jpg"><figcaption>Elige su número de panelista…</figcaption></figure>
+  <figure class="movil"><img src="img/sesiones.jpg"><figcaption>…y la sesión. Las completas quedan en gris; las empezadas, en amarillo.</figcaption></figure>
+</div>
+<ul>
+  <li>Cada pantalla muestra el <b>código de la muestra</b> que tiene que probar y el progreso de la sesión.</li>
+  <li><b>Enviar y continuar</b> guarda la muestra y pasa a la siguiente. Se puede <b>volver a la muestra anterior</b> y corregir: la corrección reemplaza a la respuesta anterior, no se duplica.</li>
+  <li>Si sale a mitad de la sesión, al volver la app retoma en la primera muestra sin responder. En Perfil Flash, Napping y Sorting lo hecho queda guardado en el dispositivo (“Pausa / salir”).</li>
+  <li>El indicador <b>“Todo guardado en la nube”</b> confirma que las respuestas llegaron. Si dice que hay respuestas pendientes, no hay que hacer nada: se suben solas cuando vuelve la conexión.
+  Conviene no borrar los datos del navegador hasta que vuelva a verde.</li>
+</ul>
+<div class="caja ojo"><span class="tit">Un número, una persona</span>
+<p>La app no pide identificación: confía en que cada panelista elige su número. Conviene anotar en la planilla qué persona tiene cada número
+(los resultados solo muestran V1, V2…) y que cada uno use siempre el mismo en todas las sesiones.</p></div>
+
+<h2>4. Seguir el avance: Progreso</h2>
+<p>La pestaña <b>Progreso</b> muestra, en vivo, una tabla de panelistas × sesiones: gris = no empezó, amarillo = en curso (por ejemplo 3/6), verde = completa.
+Sirve para saber a quién le falta y cuándo cerrar la sesión.</p>
+<figure class="medio"><img src="img/progreso.jpg"><figcaption>Progreso en vivo de un estudio de 8 panelistas y 2 sesiones.</figcaption></figure>
+
+<h2>5. Mirar los resultados mientras llegan</h2>
+<p>La pestaña <b>Análisis en vivo</b> se actualiza sola con cada respuesta que llega. Es útil para detectar problemas en el momento (un panelista que no discrimina,
+un vino defectuoso, un atributo que nadie entiende), pero con pocos datos los resultados cambian mucho: la app avisa cuando todavía hay pocas evaluaciones.
+El análisis formal se hace al final, con todas las respuestas (capítulo 13).</p>
+
+<h2>6. Cerrar</h2>
+<p>Cuando terminó la evaluación, en <b>Configuración</b> tocá <b>Cerrar estudio</b>: desaparece de la lista de los panelistas y no acepta respuestas nuevas
+(si alguien lo tenía abierto, ve el aviso de que el estudio fue cerrado). Se puede reabrir cuando haga falta.</p>

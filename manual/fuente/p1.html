@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>LibreSense · Manual de uso</title>
+<style>
+@page { size: A4; margin: 20mm 18mm 20mm 18mm; }
+@page :first { margin: 0; }
+* { box-sizing: border-box; }
+body { font-family: 'Inter', 'DejaVu Sans', sans-serif; font-size: 10.2pt; line-height: 1.5; color: #1f2937; margin: 0; }
+h1, h2, h3, h4 { font-family: 'Inter Display', 'Inter', sans-serif; color: #1e1b4b; line-height: 1.2; }
+h1 { font-size: 24pt; margin: 0 0 4mm; page-break-before: always; padding-top: 2mm; border-bottom: 3px solid #7c3aed; padding-bottom: 3mm; }
+h1 .num { color: #7c3aed; margin-right: 3mm; }
+h2 { font-size: 14.5pt; margin: 7mm 0 2mm; color: #4c1d95; break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 5mm 0 1.5mm; color: #6d28d9; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 3.5mm 0 1mm; color: #374151; break-after: avoid; }
+p { margin: 0 0 2.4mm; text-align: justify; hyphens: auto; }
+ul, ol { margin: 0 0 2.5mm; padding-left: 6mm; }
+li { margin-bottom: 1mm; }
+code { font-family: 'DejaVu Sans Mono', monospace; font-size: 8.6pt; background: #f3f4f6; padding: 0 1mm; border-radius: 2px; }
+pre { font-family: 'DejaVu Sans Mono', monospace; font-size: 8pt; background: #111827; color: #e5e7eb; padding: 3mm; border-radius: 2mm; white-space: pre-wrap; break-inside: avoid; }
+a { color: #6d28d9; text-decoration: none; }
+b, strong { color: #111827; }
+table { border-collapse: collapse; width: 100%; margin: 2mm 0 4mm; font-size: 8.8pt; break-inside: avoid; }
+th { background: #ede9fe; color: #4c1d95; text-align: left; font-weight: 600; }
+th, td { border: 1px solid #ddd6fe; padding: 1.4mm 2mm; vertical-align: top; }
+tr:nth-child(even) td { background: #faf9ff; }
+.caja { border-radius: 2.5mm; padding: 3mm 4mm; margin: 3mm 0 4mm; break-inside: avoid; }
+.caja p:last-child, .caja ul:last-child { margin-bottom: 0; }
+.idea { background: #ecfdf5; border-left: 4px solid #059669; }
+.ojo { background: #fff7ed; border-left: 4px solid #ea580c; }
+.nota { background: #eff6ff; border-left: 4px solid #2563eb; }
+.caja .tit { font-weight: 700; display: block; margin-bottom: 1mm; }
+.idea .tit { color: #047857; } .ojo .tit { color: #c2410c; } .nota .tit { color: #1d4ed8; }
+figure { margin: 3mm 0 5mm; text-align: center; break-inside: avoid; }
+figure img { max-width: 100%; border: 1px solid #e5e7eb; border-radius: 2mm; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+figure.movil img { max-height: 120mm; }
+figure.medio img { max-height: 105mm; }
+figure.alto img { max-height: 150mm; }
+figcaption { font-size: 8.4pt; color: #6b7280; margin-top: 1.5mm; font-style: italic; }
+.dos { display: flex; gap: 5mm; align-items: flex-start; justify-content: center; break-inside: avoid; }
+.dos figure { flex: 1; margin-top: 0; }
+.ficha { display: grid; grid-template-columns: 34mm 1fr; gap: 1mm 4mm; background: #f5f3ff; border-radius: 2.5mm; padding: 3mm 4mm; margin: 2mm 0 4mm; font-size: 9.2pt; break-inside: avoid; }
+.ficha b { color: #5b21b6; }
+.paso { counter-increment: paso; }
+.portada { height: 297mm; padding: 38mm 24mm 20mm; background: linear-gradient(160deg, #312e81 0%, #6d28d9 55%, #db2777 100%); color: white; position: relative; }
+.portada h1 { color: white; border: none; font-size: 46pt; page-break-before: avoid; margin: 0; padding: 0; letter-spacing: -1px; }
+.portada .sub { font-size: 18pt; margin-top: 4mm; color: #e9d5ff; font-weight: 300; }
+.portada .lema { font-size: 12pt; margin-top: 18mm; max-width: 140mm; line-height: 1.6; color: #f5f3ff; }
+.portada .tecs { margin-top: 14mm; display: flex; flex-wrap: wrap; gap: 3mm; max-width: 150mm; }
+.portada .tecs span { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.35); border-radius: 20mm; padding: 2mm 5mm; font-size: 10.5pt; }
+.portada .pie { position: absolute; bottom: 22mm; left: 24mm; right: 24mm; font-size: 9.5pt; color: #e9d5ff; border-top: 1px solid rgba(255,255,255,.3); padding-top: 4mm; }
+.portada .copa { position: absolute; right: 22mm; top: 34mm; width: 46mm; opacity: .9; }
+.indice { columns: 2; column-gap: 10mm; font-size: 9.6pt; }
+.indice div { break-inside: avoid; margin-bottom: 2.5mm; }
+.indice b { display: block; color: #4c1d95; }
+.indice a { color: #374151; display: block; padding-left: 4mm; font-size: 9pt; }
+.pequeno { font-size: 8.6pt; color: #6b7280; }
+.tecnica-cab { background: linear-gradient(90deg, #ede9fe, #fdf2f8); border-radius: 3mm; padding: 4mm 5mm; margin: 0 0 4mm; }
+.tecnica-cab p { margin: 0; font-size: 10.5pt; color: #4c1d95; text-align: left; }
+.glosario dt { font-weight: 700; color: #4c1d95; margin-top: 2mm; }
+.glosario dd { margin: 0 0 1mm 0; }
+.bib li { margin-bottom: 1.6mm; font-size: 9.2pt; }
+</style>
+</head>
+<body>
+
+<section class="portada">
+  <svg class="copa" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8l-1 7a3 3 0 01-6 0L8 2zm4 10v8m-4 0h8"/></svg>
+  <h1>LibreSense</h1>
+  <div class="sub">Manual de uso</div>
+  <div class="lema">Una aplicación libre y gratuita para hacer análisis sensorial con panelistas entrenados o con consumidores:
+    diseño del estudio, evaluación en el celular o la computadora, resultados en vivo y análisis completo en R.</div>
+  <div class="tecs">
+    <span>Análisis Descriptivo Cuantitativo</span><span>RATA</span><span>CATA con aceptabilidad</span>
+    <span>Perfil Flash</span><span>Napping</span><span>Sorting</span>
+  </div>
+  <div class="pie">
+    App: anibalacatania.github.io/libresense · Administración: anibalacatania.github.io/libresense/#admin<br>
+    Versión del manual: noviembre de 2026
+  </div>
+</section>
+
+<h1 style="border:none">Contenido</h1>
+<div class="indice">
+  <div><b>1. Qué es LibreSense</b><a href="#c1">Para qué sirve · Cómo está armada · Qué se necesita</a></div>
+  <div><b>2. Primeros pasos</b><a href="#c2">Entrar a la administración · Administradores y permisos</a></div>
+  <div><b>3. Elegir la técnica</b><a href="#c3">Comparación de las seis técnicas · Guía rápida</a></div>
+  <div><b>4. Crear un estudio</b><a href="#c4">Vinos, sesiones, repeticiones · Diseño de Williams · Códigos · Descriptores</a></div>
+  <div><b>5. El día de la evaluación</b><a href="#c5">Link para los panelistas · Planilla de servicio · La app del panelista · Progreso</a></div>
+  <div><b>6. Análisis Descriptivo Cuantitativo (ADC)</b><a href="#t-adc">Escalas 0–10 con panel entrenado</a></div>
+  <div><b>7. RATA</b><a href="#t-rata">Marcar e indicar la intensidad</a></div>
+  <div><b>8. CATA con aceptabilidad</b><a href="#t-cata">Consumidores, agrado, ideal y penalidades</a></div>
+  <div><b>9. Perfil Flash</b><a href="#t-flash">Descriptores propios y ordenamiento</a></div>
+  <div><b>10. Napping</b><a href="#t-nap">Mapeo proyectivo en una hoja</a></div>
+  <div><b>11. Sorting</b><a href="#t-sort">Agrupamiento libre</a></div>
+  <div><b>12. Cómo leer los resultados</b><a href="#c12">Significancia · Mapas · Elipses · Panelistas</a></div>
+  <div><b>13. Resultados, descargas y R</b><a href="#c13">CSV para R y para Excel · Análisis completo en Shiny</a></div>
+  <div><b>14. Configuración y buenas prácticas</b><a href="#c14">Cerrar, borrar datos, empezar de cero</a></div>
+  <div><b>15. Preguntas frecuentes</b><a href="#c15">Problemas habituales y cómo resolverlos</a></div>
+  <div><b>16. Glosario y bibliografía</b><a href="#c16">Términos y referencias</a></div>
+</div>
+
+<!-- ===================================================================== 1 -->
+<h1 id="c1"><span class="num">1</span>Qué es LibreSense</h1>
+<p>LibreSense es una aplicación web para hacer evaluaciones sensoriales. Reemplaza las planillas en papel y los programas comerciales en las tareas más habituales de un laboratorio
+o una bodega: armar el diseño del estudio, codificar las muestras, que cada panelista evalúe desde su celular, tablet o computadora,
+seguir el avance en tiempo real y obtener los resultados listos para analizar.</p>
+<p>Tiene dos partes que se usan con la misma dirección:</p>
+<ul>
+  <li><b>La app de los panelistas</b> (<a href="https://anibalacatania.github.io/libresense/">anibalacatania.github.io/libresense</a>): no pide usuario ni contraseña. El panelista elige el estudio, su número y la sesión, y evalúa.</li>
+  <li><b>La administración</b> (<a href="https://anibalacatania.github.io/libresense/#admin">…/libresense/#admin</a>): se entra con una cuenta de Google autorizada. Desde ahí se crean los estudios, se imprime la planilla de servicio, se sigue el progreso, se miran los resultados en vivo y se descargan los datos.</li>
+</ul>
+<p>Para el análisis más completo, cada técnica que lo necesita tiene además una <b>aplicación en R (Shiny)</b> que se abre con un botón desde la administración
+y lee los datos del estudio directamente, con los métodos estadísticos de la bibliografía (FactoMineR, SensoMineR).</p>
+
+<h2>Cómo está armada</h2>
+<table>
+  <tr><th style="width:28%">Parte</th><th>Dónde está</th><th style="width:36%">Qué guarda</th></tr>
+  <tr><td>App (panelistas y administración)</td><td>GitHub Pages, gratis</td><td>Nada: es solo la página</td></tr>
+  <tr><td>Base de datos</td><td>Google Firebase (Firestore), plan gratuito, servidores en San Pablo</td><td>Estudios, diseño, respuestas y progreso</td></tr>
+  <tr><td>Inicio de sesión de administradores</td><td>Firebase Authentication con Google</td><td>Quién puede administrar</td></tr>
+  <tr><td>Análisis completo</td><td>shinyapps.io (cuenta propia)</td><td>Nada: lee los datos en el momento</td></tr>
+</table>
+<p>Las reglas de seguridad de la base de datos están del lado del servidor: un panelista solo puede <i>agregar</i> respuestas a estudios activos y con el formato correcto,
+y no puede leer los nombres de los vinos ni las respuestas de otros. Los nombres reales de las muestras solo los ven los administradores.</p>
+
+<div class="caja idea"><span class="tit">Funciona sin internet</span>
+<p>La app del panelista guarda cada respuesta primero en el dispositivo y la sube sola en cuanto hay conexión. Si se corta el wifi en la sala de cata, se puede seguir evaluando:
+el indicador “Todo guardado en la nube” cambia a “pendiente” y vuelve a verde cuando se sincroniza. Lo único que hace falta es haber abierto el estudio una vez con conexión.</p></div>
+
+<h2>Qué se necesita</h2>
+<ul>
+  <li>Para los panelistas: cualquier navegador moderno (Chrome, Safari, Firefox, Edge) en celular, tablet o computadora. No se instala nada.</li>
+  <li>Para administrar: una cuenta de Google autorizada como administrador (ver el capítulo 2).</li>
+  <li>Para el análisis en R: nada en la computadora. Las apps de Shiny están publicadas en shinyapps.io; si se quieren actualizar o publicar de nuevo, hace falta RStudio (capítulo 13).</li>
+</ul>
+
+<!-- ===================================================================== 2 -->
+<h1 id="c2"><span class="num">2</span>Primeros pasos</h1>
+<h2>Entrar a la administración</h2>
+<ol>
+  <li>Abrí <a href="https://anibalacatania.github.io/libresense/#admin">anibalacatania.github.io/libresense/#admin</a>.</li>
+  <li>Tocá <b>Entrar con Google</b> y elegí tu cuenta.</li>
+  <li>La primera persona que entra a una instalación nueva puede registrarse como <b>administrador total</b>. Eso pasa una sola vez; después, solo un administrador total puede agregar a otros.</li>
+</ol>
+<figure><img src="img/lista.jpg"><figcaption>La lista de estudios. Cada tarjeta muestra la técnica, las sesiones, los panelistas y si el estudio está activo.</figcaption></figure>
+
+<h2>Administradores y permisos</h2>
+<p>Hay dos tipos de administrador. Se eligen en <b>Administradores</b> (menú superior), al agregar el correo de Google de la persona:</p>
+<table>
+  <tr><th style="width:30%">Rol</th><th>Qué puede hacer</th></tr>
+  <tr><td><b>Administrador total</b></td><td>Ve y modifica <i>todos</i> los estudios (con el nombre de quien creó cada uno), agrega y quita administradores y cambia sus roles.</td></tr>
+  <tr><td><b>Administrador (solo sus estudios)</b></td><td>Crea estudios y solo ve, modifica, analiza y borra los que creó. No ve los estudios de otros ni la sección Administradores.</td></tr>
+</table>
+<figure class="medio"><img src="img/admins.jpg"><figcaption>Administradores: correo de Google y rol de cada uno.</figcaption></figure>
+<div class="caja nota"><span class="tit">La restricción es real, no solo de pantalla</span>
+<p>La controla la base de datos. Un administrador “solo sus estudios” no puede leer datos de otros estudios aunque lo intente por otro camino; tampoco desde las apps de R,
+que leen los datos con el permiso de quien las abre. Los estudios creados antes de que existieran los roles no tienen dueño y solo los ve el administrador total.</p></div>
+
+<!-- ===================================================================== 3 -->
+<h1 id="c3"><span class="num">3</span>Elegir la técnica</h1>
+<p>LibreSense tiene seis técnicas. Se diferencian en <b>quién evalúa</b> (panel entrenado o consumidores), <b>cómo se presentan las muestras</b> (de a una o todas juntas)
+y <b>qué información dan</b> (intensidades de atributos definidos, frecuencias de términos, o un mapa de parecidos).</p>
+<table>
+  <tr><th>Técnica</th><th>Panel</th><th>Muestras</th><th>El panelista…</th><th>Resultado principal</th></tr>
+  <tr><td><b>ADC</b></td><td>Entrenado, 8–12</td><td>De a una, Williams</td><td>Puntúa cada atributo en una escala 0–10</td><td>Medias, ANOVA, PCA</td></tr>
+  <tr><td><b>RATA</b></td><td>Entrenado o semi; también consumidores</td><td>De a una, Williams</td><td>Marca los descriptores presentes e indica bajo/medio/alto</td><td>Frecuencias e intensidades, PCA</td></tr>
+  <tr><td><b>CATA con aceptabilidad</b></td><td>Consumidores, 50–100+</td><td>De a una, Williams</td><td>Dice cuánto le gusta y marca los términos que la describen</td><td>Agrado, frecuencias, mapa, penalidades</td></tr>
+  <tr><td><b>Perfil Flash</b></td><td>Semi-entrenado o expertos, 5–10</td><td>Todas juntas, letras</td><td>Crea sus descriptores y ordena las copas en cada uno</td><td>Mapa de consenso (AFM)</td></tr>
+  <tr><td><b>Napping</b></td><td>Cualquiera, 10–30</td><td>De a una, luego juntas en la hoja</td><td>Ubica las muestras en una hoja: cerca = parecidas</td><td>Mapa de consenso (AFM)</td></tr>
+  <tr><td><b>Sorting</b></td><td>Cualquiera, 15–30+</td><td>Todas juntas</td><td>Arma grupos de muestras parecidas</td><td>Mapa (MCA, DISTATIS), grupos</td></tr>
+</table>
+
+<h2>Guía rápida</h2>
+<ul>
+  <li><b>¿Necesitás números por atributo para comparar vinos, seguir un proceso o un control de calidad?</b> ADC (panel entrenado) o RATA (más rápido, menos entrenamiento).</li>
+  <li><b>¿Querés saber qué les gusta a los consumidores y por qué?</b> CATA con aceptabilidad, idealmente con la pregunta del vino ideal.</li>
+  <li><b>¿Tenés poco tiempo y querés un primer mapa de un grupo de vinos?</b> Perfil Flash (con gente que sabe describir) o Napping.</li>
+  <li><b>¿Muchas muestras, o panelistas sin entrenamiento, y te interesa qué vinos se parecen?</b> Sorting.</li>
+</ul>
+<div class="caja idea"><span class="tit">Técnicas rápidas vs. perfil clásico</span>
+<p>Las técnicas “rápidas” (Flash, Napping, Sorting, CATA) no reemplazan al ADC cuando se necesitan intensidades precisas y comparables en el tiempo, pero dan en una o dos
+sesiones un panorama que el ADC da después de semanas de entrenamiento. En la bibliografía (Varela y Ares, 2014) los mapas que producen suelen ser parecidos a los del perfil clásico
+cuando las diferencias entre muestras son claras.</p></div>

@@ -8,6 +8,9 @@ import { TECNICAS, nombreTecnica, palabraLista, etiquetasRata, parsearDescriptor
 import { analizar, afm } from './analisis.js';
 
 // ---- almacenamiento local seguro (copias para mostrar la app al instante)
+// manual de uso (PDF), publicado junto con la app
+const MANUAL = 'manual/LibreSense-manual.pdf';
+
 const LS = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
@@ -216,6 +219,7 @@ function PanelApp() {
                 <p className="text-sm text-purple-100">{(TECNICAS[e.tecnica] || TECNICAS.descriptiva).corto} · {e.sesiones.length} sesiones · {e.panelistas.length} panelistas</p>
               </button>))}
             </div>}
+        <p className="text-center mt-5"><a href={MANUAL} target="_blank" rel="noopener" className="text-xs text-gray-400 hover:text-purple-600 hover:underline">Manual de uso (PDF)</a></p>
       </Tarjeta>
     );
   }
@@ -1424,6 +1428,7 @@ function AdminApp() {
             <button onClick={() => setVista({ tipo: 'lista' })} className={vista.tipo === 'lista' ? 'font-bold text-purple-700' : 'text-purple-700 hover:underline'}>Estudios</button>
             {rol === 'super' && <button onClick={() => setVista({ tipo: 'admins' })} className={vista.tipo === 'admins' ? 'font-bold text-purple-700' : 'text-purple-700 hover:underline'}>Administradores</button>}
             <a href="#" className="text-purple-700 hover:underline">App de panelistas</a>
+            <a href={MANUAL} target="_blank" rel="noopener" className="text-purple-700 hover:underline">Manual (PDF)</a>
             <span className="text-gray-400">{usuario.email}{rol === 'admin' && <span className="ml-1 text-[11px] bg-gray-100 text-gray-600 rounded px-1.5 py-0.5">ve solo sus estudios</span>}</span>
             <button onClick={datos.salir} className="text-gray-500 hover:underline">Salir</button>
           </div>

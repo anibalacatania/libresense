@@ -1,6 +1,6 @@
 # Análisis de CATA con aceptabilidad.
-# Referencias: Ares y Jaeger (2015), cap. CATA de Varela y Ares (eds.), Novel Techniques in Sensory
-# Characterization and Consumer Profiling; Meyners, Castura y Carr (2013); Ares, Dauber, Fernández, Giménez y
+# Referencias: Meyners y Castura (2014), cap. 11 de Varela y Ares (eds.), Novel Techniques in Sensory
+# Characterization and Consumer Profiling; Ares y Jaeger (2015), cap. 11 de Rapid Sensory Profiling Techniques; Meyners, Castura y Carr (2013); Ares, Dauber, Fernández, Giménez y
 # Varela (2014) penalidades con producto ideal; Meyners y Castura (2014) Cochran y McNemar.
 
 HEDONICA <- c("Me disgusta muchísimo", "Me disgusta mucho", "Me disgusta moderadamente", "Me disgusta levemente",

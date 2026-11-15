@@ -1,5 +1,5 @@
 // CATA (Check-All-That-Apply) con aceptabilidad y penalidades.
-// Referencias: Ares & Jaeger (cap. CATA en Varela & Ares, "Novel Techniques in Sensory Characterization
+// Referencias: Meyners & Castura (cap. 11 de Varela & Ares, "Novel Techniques in Sensory Characterization
 // and Consumer Profiling"); Meyners, Castura & Carr (2013); Ares et al. (2014) penalidades con producto ideal.
 import { lgamma, jacobi, pF } from './analisis.js';
 

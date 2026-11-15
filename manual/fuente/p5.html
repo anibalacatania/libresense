@@ -1,0 +1,198 @@
+
+<!-- ===================================================================== 12 INTERPRETAR -->
+<h1 id="c12"><span class="num">12</span>Cómo leer los resultados</h1>
+<p>Este capítulo resume las ideas que se repiten en todas las técnicas. No reemplaza a un curso de estadística, pero alcanza para leer con criterio lo que muestra la app.</p>
+
+<h2>Significancia: el valor p</h2>
+<p>El valor <b>p</b> responde a la pregunta: <i>si en realidad los vinos fueran iguales, ¿qué tan probable sería ver diferencias como las observadas, solo por azar?</i>
+Cuando p es chico (por convención, menor que 0,05) se dice que la diferencia es <b>significativa</b>. La app usa la notación habitual:</p>
+<table>
+  <tr><th>Símbolo</th><td><b>***</b> p &lt; 0,001</td><td><b>**</b> p &lt; 0,01</td><td><b>*</b> p &lt; 0,05</td><td><b>·</b> p &lt; 0,10</td><td><b>ns</b> no significativo</td></tr>
+</table>
+<ul>
+  <li><b>Significativo no es lo mismo que importante.</b> Con muchos consumidores, una diferencia de 0,2 puntos en la escala de agrado puede ser significativa y no tener ninguna importancia práctica.</li>
+  <li><b>No significativo no prueba que sean iguales</b>: puede que falten panelistas o que el panel no sea consistente.</li>
+  <li>Al comparar muchos pares a la vez, aparecen diferencias “significativas” por azar. Por eso existen los ajustes (Tukey, Holm, Bonferroni).</li>
+</ul>
+
+<h2>Letras de comparaciones de a pares</h2>
+<p>Las letras (a, b, c…) resumen qué vinos difieren entre sí: <b>dos vinos que no comparten ninguna letra difieren significativamente</b>; si comparten alguna, no.
+Por ejemplo, con A = “a”, B = “ab” y C = “b”: A y C difieren, pero B no difiere de ninguno de los dos. La “a” la lleva el vino con el valor más alto.</p>
+
+<h2>Mapas: PCA, AFM, correspondencias, MCA, DISTATIS</h2>
+<p>Todas las técnicas terminan en un mapa de dos dimensiones que resume una tabla más grande. Las reglas para leerlos son las mismas:</p>
+<ul>
+  <li><b>Los vinos cerca entre sí se parecen</b> (en sus atributos, en cómo los ordenaron o agruparon los panelistas).</li>
+  <li><b>El % de cada eje</b> (“Dim 1 (47,5%)”) indica cuánta de la información total resume. Si las dos primeras dimensiones juntan poco (menos del 50–60%),
+  conviene mirar también la dimensión 3 (las apps de R permiten elegir 1-3 o 2-3).</li>
+  <li><b>El signo de los ejes es arbitrario</b>: un mapa espejado es el mismo mapa. Por eso los gráficos tienen la opción “Invertir Dim 1 / Dim 2”, para que coincida con el de R o con uno anterior.</li>
+  <li><b>Flechas</b> (PCA, AFM): señalan hacia dónde aumenta un atributo. Su largo indica qué tan bien está representado en ese plano; una flecha corta casi no tiene que ver con esas dimensiones.</li>
+  <li><b>Términos y palabras</b> (correspondencias, Napping, Sorting): se ubican cerca de los vinos que más describen.</li>
+  <li>Interpretá los grandes patrones (grupos de vinos, oposiciones a lo largo del eje 1), no distancias chicas.</li>
+</ul>
+<table>
+  <tr><th style="width:24%">Método</th><th style="width:22%">Dónde aparece</th><th>Qué hace</th></tr>
+  <tr><td>PCA</td><td>ADC, RATA</td><td>Resume la tabla vinos × atributos (medias), estandarizada.</td></tr>
+  <tr><td>AFM / MFA</td><td>Perfil Flash, Napping</td><td>Combina las tablas de todos los panelistas dándole a cada uno el mismo peso máximo, aunque usen distinta cantidad de descriptores.</td></tr>
+  <tr><td>GPA</td><td>Perfil Flash (Shiny)</td><td>Rota y escala el mapa de cada panelista para que se parezca lo más posible al de consenso.</td></tr>
+  <tr><td>Correspondencias (CA)</td><td>CATA</td><td>Resume la tabla de frecuencias vinos × términos.</td></tr>
+  <tr><td>MCA</td><td>Sorting (Shiny)</td><td>Trata a cada panelista como una variable categórica cuyas categorías son sus grupos.</td></tr>
+  <tr><td>DISTATIS</td><td>Sorting (Shiny)</td><td>Combina una matriz de distancias por panelista, dándole más peso a los que coinciden con el resto.</td></tr>
+  <tr><td>MDS</td><td>Sorting</td><td>Ubica los vinos para que sus distancias reflejen cuán seguido no se agruparon juntos.</td></tr>
+</table>
+
+<h2>Elipses de confianza</h2>
+<p>Las elipses (en las apps de R) muestran cuánto se movería cada vino en el mapa si se repitiera el estudio con otros panelistas parecidos. Se calculan armando cientos de
+“paneles virtuales” por sorteo. <b>Dos vinos cuyas elipses no se superponen fueron diferenciados por el panel</b>; si se superponen mucho, el panel no los distinguió con claridad.
+Elipses grandes en general indican un panel poco consistente o pocas personas.</p>
+
+<h2>Los panelistas</h2>
+<ul>
+  <li><b>RV</b> (de 0 a 1): parecido entre dos configuraciones. El RV de un panelista con el consenso dice cuánto coincide con el panel; uno muy bajo puede usar otro criterio, no haber entendido la tarea o tener un problema (por ejemplo, anosmia a algún compuesto).</li>
+  <li><b>Duplicados</b>: un panelista consistente trata al duplicado igual que a su original (cerca en el mapa, en el mismo grupo, con rangos parecidos).</li>
+  <li>Antes de descartar a alguien, mirá su mapa individual: a veces percibe algo real que el resto no.</li>
+</ul>
+
+<h2>¿Cuántos datos hacen falta?</h2>
+<table>
+  <tr><th>Técnica</th><th>Mínimo razonable</th><th>Recomendado</th></tr>
+  <tr><td>ADC</td><td>8 panelistas entrenados, 2 repeticiones</td><td>10–12, 3 repeticiones</td></tr>
+  <tr><td>RATA</td><td>12–15 (entrenados) o 50 (consumidores)</td><td>20+ o 100</td></tr>
+  <tr><td>CATA con aceptabilidad</td><td>50 consumidores</td><td>100 o más (más aún para segmentar)</td></tr>
+  <tr><td>Perfil Flash</td><td>4–5 panelistas</td><td>8–10</td></tr>
+  <tr><td>Napping</td><td>10 panelistas</td><td>15–30</td></tr>
+  <tr><td>Sorting</td><td>15 panelistas</td><td>20–30 o más</td></tr>
+</table>
+
+<!-- ===================================================================== 13 RESULTADOS Y R -->
+<h1 id="c13"><span class="num">13</span>Resultados, descargas y R</h1>
+<h2>La pestaña Resultados</h2>
+<p>Tiene todas las respuestas, con el nombre real del vino y la repetición (que el panelista no ve), listas para descargar:</p>
+<ul>
+  <li><b>CSV para R</b>: separador coma y punto decimal (se lee con <code>read.csv</code>).</li>
+  <li><b>CSV para Excel en español</b>: separador punto y coma y coma decimal (se abre con doble clic en un Excel configurado en español).</li>
+  <li>Según la técnica, además: formato largo, matrices listas para FactoMineR/SensoMineR (AFM, MCA, FAST), tabla de co-ocurrencias, palabras para análisis textual
+  y un bloque de <b>código R</b> para correr el análisis con esos archivos.</li>
+</ul>
+<figure class="medio"><img src="img/sort_resultados.jpg"><figcaption>Resultados de un Sorting: descargas, código R y la matriz de grupos.</figcaption></figure>
+<p>Las columnas comunes son: Estudio, Sesion, Valuador (V1, V2…), Orden (posición en que se sirvió), NombreProducto (el vino real), Rep, CodigoProducto y timestamp.
+En ADC y RATA sigue una columna por atributo; en CATA, Aceptabilidad y una columna por término (las filas con NombreProducto = IDEAL son el ideal de cada consumidor).</p>
+
+<h2>Análisis completo en R (Shiny)</h2>
+<p>Perfil Flash, Napping, CATA y Sorting tienen una app de R publicada en shinyapps.io. Se abre con el botón <b>Análisis completo en R (Shiny) ↗</b> en Análisis en vivo o en Resultados.</p>
+<table>
+  <tr><th>Técnica</th><th>Dirección</th></tr>
+  <tr><td>Perfil Flash</td><td><a href="https://acatania.shinyapps.io/perfilflash/">acatania.shinyapps.io/perfilflash</a></td></tr>
+  <tr><td>Napping</td><td><a href="https://acatania.shinyapps.io/napping/">acatania.shinyapps.io/napping</a></td></tr>
+  <tr><td>CATA con aceptabilidad</td><td><a href="https://acatania.shinyapps.io/cata/">acatania.shinyapps.io/cata</a></td></tr>
+  <tr><td>Sorting</td><td><a href="https://acatania.shinyapps.io/sorting/">acatania.shinyapps.io/sorting</a></td></tr>
+</table>
+<ul>
+  <li><b>Cómo llegan los datos</b>: la administración le pasa a la app de R, y solo a esa ventana, la sesión del administrador. La app de R lee el estudio directamente de la base de datos, con los mismos permisos.
+  Por eso hay que abrirla con el botón (no copiando la dirección) y con el estudio abierto en la administración. El botón “Actualizar datos” vuelve a leer las respuestas nuevas.</li>
+  <li><b>Sin conexión con la app</b>: todas las apps de R aceptan también el CSV descargado de Resultados (“…o subí un archivo”).</li>
+  <li><b>Cada app tiene</b> una pestaña Datos con controles, los análisis de la técnica, Descargas (gráficos en PNG, Excel con todas las tablas, informe en Word o HTML, código R equivalente) y Ayuda.</li>
+</ul>
+<div class="caja ojo"><span class="tit">La primera vez tarda</span><p>En el plan gratuito de shinyapps.io las apps se “duermen” cuando nadie las usa. La primera apertura puede tardar 20–40 segundos.
+Si aparece “Disconnected from the server”, recargá la página o volvé a tocar el botón en la administración. El plan gratuito tiene además un límite de horas de uso por mes.</p></div>
+
+<h2>Publicar o actualizar las apps de R</h2>
+<p>Cuando hay una versión nueva de una app de R (o para publicarla por primera vez), se hace desde RStudio, con la cuenta de shinyapps.io ya configurada
+(<code>rsconnect::setAccountInfo</code>, una sola vez; el token y el secreto se copian desde shinyapps.io → Account → Tokens y no se comparten con nadie):</p>
+<pre>d &lt;- path.expand("~/libresense_app"); z &lt;- tempfile(fileext = ".zip")
+download.file("https://github.com/anibalacatania/libresense/archive/refs/heads/main.zip", z, mode = "wb")
+unzip(z, exdir = d, overwrite = TRUE)
+# una línea por app que se quiera publicar o actualizar:
+rsconnect::deployApp(file.path(d, "libresense-main/shiny/perfilflash"), appName = "perfilflash", account = "acatania")
+rsconnect::deployApp(file.path(d, "libresense-main/shiny/napping"),     appName = "napping",     account = "acatania")
+rsconnect::deployApp(file.path(d, "libresense-main/shiny/cata"),        appName = "cata",        account = "acatania")
+rsconnect::deployApp(file.path(d, "libresense-main/shiny/sorting"),     appName = "sorting",     account = "acatania")</pre>
+<p>Si R pide actualizar paquetes, conviene aceptar. Si un paquete no compila, actualizarlo primero con <code>install.packages()</code> y volver a publicar.</p>
+
+<!-- ===================================================================== 14 CONFIGURACION -->
+<h1 id="c14"><span class="num">14</span>Configuración y buenas prácticas</h1>
+<figure class="medio"><img src="img/config.jpg"><figcaption>Configuración de un estudio.</figcaption></figure>
+<table>
+  <tr><th style="width:30%">Opción</th><th>Qué hace</th></tr>
+  <tr><td><b>Link directo</b></td><td>Dirección que abre ese estudio sin pasar por la lista. Para WhatsApp o un QR.</td></tr>
+  <tr><td><b>Cerrar / reabrir estudio</b></td><td>Cerrado: no aparece a los panelistas y no acepta respuestas. Los datos se conservan.</td></tr>
+  <tr><td><b>Nombre</b></td><td>Cambia el nombre que ven los panelistas.</td></tr>
+  <tr><td><b>Borrar los datos (empezar de cero)</b></td><td>Borra todas las respuestas y el progreso, pero deja el estudio con su diseño y sus códigos. Hay que escribir BORRAR para confirmar. Los dispositivos de los panelistas también se reinician.</td></tr>
+  <tr><td><b>Borrar estudio</b></td><td>Borra el estudio y todas sus respuestas, sin vuelta atrás. Hay que escribir el nombre del estudio para confirmar.</td></tr>
+</table>
+<h2>Buenas prácticas</h2>
+<ol>
+  <li><b>Probá el estudio antes</b>: entrá como panelista desde un celular, hacé una sesión completa y mirá el análisis en vivo y los resultados. Después, <b>Borrar los datos</b> y queda listo para la evaluación real.</li>
+  <li><b>Imprimí la planilla de servicio</b> y anotá qué persona tiene cada número de panelista.</li>
+  <li><b>Antes de servir, revisá el código</b> de cada copa contra la planilla: un error de servicio no se puede corregir después.</li>
+  <li><b>Mirá el progreso</b> antes de dejar ir a los panelistas: que cada sesión esté en verde.</li>
+  <li><b>Descargá el CSV</b> al terminar cada estudio y guardalo junto con la planilla. Es el respaldo de los datos.</li>
+  <li><b>Cerrá el estudio</b> cuando termine, para que nadie agregue respuestas por error.</li>
+  <li>Para un estudio nuevo con el mismo diseño, conviene crear otro estudio (con la misma semilla si se quiere el mismo diseño) en lugar de borrar los datos de uno ya usado.</li>
+</ol>
+<div class="caja nota"><span class="tit">Límites del plan gratuito</span><p>La base de datos usa el plan gratuito de Firebase, que permite decenas de miles de lecturas y escrituras por día:
+de sobra para un laboratorio (cada muestra evaluada es una escritura). El límite se reinicia todos los días.</p></div>
+
+<!-- ===================================================================== 15 FAQ -->
+<h1 id="c15"><span class="num">15</span>Preguntas frecuentes</h1>
+<h4>Un panelista no ve el estudio.</h4>
+<p>Revisá que esté <b>activo</b> (Configuración). Si lo tenía abierto desde antes, que recargue la página. Si hay varios estudios activos, que elija el correcto, o mandale el link directo.</p>
+<h4>Un panelista dice que se le cortó internet.</h4>
+<p>Puede seguir: las respuestas quedan en el dispositivo y se suben solas. Que no borre los datos del navegador ni cambie de navegador hasta que el indicador diga “Todo guardado en la nube”.</p>
+<h4>Un panelista eligió el número equivocado.</h4>
+<p>Si todavía no envió nada, que toque “Cambiar” y elija el correcto. Si ya envió muestras con otro número, esas respuestas quedan con ese número: anotalo y corregilo en el CSV antes del análisis
+(o, si fue en una prueba, usá “Borrar los datos”).</p>
+<h4>Me equivoqué en el diseño (vinos, cantidad de panelistas, atributos).</h4>
+<p>El diseño no se edita una vez creado, porque los códigos ya pueden estar impresos o servidos. Creá un estudio nuevo con los datos corregidos y borrá el anterior.</p>
+<h4>¿Puedo agregar panelistas a un estudio en curso?</h4>
+<p>No a un estudio creado. Conviene crear el estudio con algunos puestos de más (por ejemplo 16 si esperás 13); los que no se usen simplemente no tienen respuestas.</p>
+<h4>El análisis en vivo y el de R dan mapas espejados.</h4>
+<p>Es normal: el signo de los ejes es arbitrario. Usá “Invertir Dim 1/Dim 2”.</p>
+<h4>La app de R dice que no tiene permiso.</h4>
+<p>La sesión del administrador vence a la hora (la administración la renueva sola mientras está abierta). Volvé a abrir el análisis con el botón desde la administración.
+Si sos administrador “solo sus estudios”, solo podés abrir los estudios que creaste.</p>
+<h4>Quiero que otra persona vea los resultados sin poder tocar nada.</h4>
+<p>Descargale el CSV o el Excel / informe de la app de R. Darle acceso de administrador le permite modificar sus propios estudios, pero no los tuyos si es administrador “solo sus estudios”.</p>
+<h4>¿Se puede usar para otra cosa que vinos?</h4>
+<p>Sí: los textos dicen “vinos” y “copas”, pero los nombres de las muestras son libres. Funciona igual para cerveza, aceite de oliva, quesos o cualquier producto.</p>
+
+<!-- ===================================================================== 16 GLOSARIO -->
+<h1 id="c16"><span class="num">16</span>Glosario y bibliografía</h1>
+<dl class="glosario">
+  <dt>AFM / MFA</dt><dd>Análisis Factorial Múltiple: combina varias tablas de las mismas muestras (una por panelista) en un mapa de consenso.</dd>
+  <dt>ANOVA</dt><dd>Análisis de la varianza: prueba si las medias de los vinos difieren más de lo esperable por azar, descontando las diferencias entre panelistas.</dd>
+  <dt>Bootstrap</dt><dd>Repetir un cálculo muchas veces sorteando panelistas con reposición, para ver cuán estable es un resultado.</dd>
+  <dt>CATA / RATA</dt><dd>Check-All-That-Apply / Rate-All-That-Apply: marcar todos los términos que corresponden (y, en RATA, su intensidad).</dd>
+  <dt>Co-ocurrencia</dt><dd>En Sorting, cantidad de panelistas que pusieron dos muestras en el mismo grupo.</dd>
+  <dt>Consenso</dt><dd>Configuración de las muestras que resume a todo el panel.</dd>
+  <dt>Duplicado</dt><dd>Muestra servida dos veces en la misma sesión, con otro código, para medir la consistencia del panelista.</dd>
+  <dt>Escala hedónica</dt><dd>Escala de agrado de 9 puntos, de “Me disgusta muchísimo” (1) a “Me gusta muchísimo” (9).</dd>
+  <dt>Inercia (%)</dt><dd>Parte de la información total que resume cada dimensión de un mapa.</dd>
+  <dt>McNemar / Q de Cochran</dt><dd>Pruebas para datos 0/1 de los mismos consumidores: McNemar compara dos productos, Cochran compara todos a la vez.</dd>
+  <dt>Penalidad</dt><dd>Cuánto baja el agrado cuando un término falta o sobra respecto del ideal (o cuando se marca vs. no se marca).</dd>
+  <dt>Rango</dt><dd>En Perfil Flash, la posición de una copa en el ordenamiento de un descriptor (1 = menos intensa). Empates: rango promedio.</dd>
+  <dt>RV</dt><dd>Coeficiente de 0 a 1 que mide el parecido entre dos configuraciones de las mismas muestras.</dd>
+  <dt>Semilla</dt><dd>Número que fija el sorteo del diseño y los códigos, para poder reproducirlo.</dd>
+  <dt>Tukey</dt><dd>Prueba de comparaciones de a pares entre medias que controla el error al hacer muchas comparaciones.</dd>
+  <dt>Williams (diseño)</dt><dd>Orden de presentación balanceado: cada muestra aparece en cada posición y sigue a cada otra la misma cantidad de veces.</dd>
+</dl>
+
+<h2>Bibliografía</h2>
+<ul class="bib">
+  <li>Varela, P. y Ares, G. (eds.) (2014). <i>Novel Techniques in Sensory Characterization and Consumer Profiling</i>. Boca Raton: CRC Press. En particular: cap. 7, Flash profile (J. Delarue);
+  cap. 8, Free sorting task (S. Chollet, D. Valentin y H. Abdi); cap. 9, Projective mapping and Napping (C. Dehlholm); cap. 11, Check-all-that-apply questions (M. Meyners y J. C. Castura).</li>
+  <li>Ares, G. y Jaeger, S. R. (2015). Check-all-that-apply (CATA) questions with consumers in practice: experimental considerations and impact on outcome. En Delarue, J., Lawlor, J. B. y Rogeaux, M. (eds.), <i>Rapid Sensory Profiling Techniques</i>, cap. 11. Woodhead Publishing.</li>
+  <li>Ares, G., Dauber, C., Fernández, E., Giménez, A. y Varela, P. (2014). Penalty analysis based on CATA questions to identify drivers of liking and directions for product reformulation. <i>Food Quality and Preference</i>, 32, 65–76.</li>
+  <li>Meyners, M., Castura, J. C. y Carr, B. T. (2013). Existing and new approaches for the analysis of CATA data. <i>Food Quality and Preference</i>, 30, 309–319.</li>
+  <li>Meyners, M., Jaeger, S. R. y Ares, G. (2016). On the analysis of Rate-All-That-Apply (RATA) data. <i>Food Quality and Preference</i>, 49, 1–10.</li>
+  <li>Abdi, H., Valentin, D., Chollet, S. y Chrea, C. (2007). Analyzing assessors and products in sorting tasks: DISTATIS, theory and applications. <i>Food Quality and Preference</i>, 18, 627–640.</li>
+  <li>Cadoret, M., Lê, S. y Pagès, J. (2009). A factorial approach for sorting task data (FAST). <i>Food Quality and Preference</i>, 20, 410–417.</li>
+  <li>Cadoret, M. y Husson, F. (2013). Construction and evaluation of confidence ellipses applied at sensory data. <i>Food Quality and Preference</i>, 28, 106–115.</li>
+  <li>Dehlholm, C., Brockhoff, P. B., Meinert, L., Aaslyng, M. D. y Bredie, W. L. P. (2012). Rapid descriptive sensory methods: Comparison of Free Multiple Sorting, Partial Napping, Napping, Flash Profiling and conventional profiling. <i>Food Quality and Preference</i>, 26, 267–277.</li>
+  <li>Hopfer, H. y Heymann, H. (2013). A summary of projective mapping observations: the effect of replicates and shape, and individual performance measurements. <i>Food Quality and Preference</i>, 28, 164–181.</li>
+  <li>Williams, E. J. (1949). Experimental designs balanced for the estimation of residual effects of treatments. <i>Australian Journal of Scientific Research</i>, A2, 149–168.</li>
+  <li>Lê, S., Josse, J. y Husson, F. (2008). FactoMineR: an R package for multivariate analysis. <i>Journal of Statistical Software</i>, 25(1), 1–18. · Lê, S. y Husson, F. (2008). SensoMineR: a package for sensory data analysis. <i>Journal of Sensory Studies</i>, 23, 14–25.</li>
+</ul>
+<p class="pequeno" style="margin-top:8mm">LibreSense es software libre. El código de la app y de las apps de R está en github.com/anibalacatania/libresense.</p>
+</body>
+</html>

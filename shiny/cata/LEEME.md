@@ -1,8 +1,8 @@
 # CATA con aceptabilidad · análisis completo (Shiny)
 
 App Shiny que acompaña a la app **LibreSense**. Analiza los estudios CATA con aceptabilidad (y producto ideal, si se pidió)
-con R y FactoMineR, siguiendo a Ares y Jaeger (2015, cap. CATA de *Novel Techniques in Sensory Characterization and
-Consumer Profiling*), Meyners, Castura y Carr (2013) y Ares et al. (2014).
+con R y FactoMineR, siguiendo a Meyners y Castura (2014, cap. 11 de *Novel Techniques in Sensory Characterization and
+Consumer Profiling*), Ares y Jaeger (2015, cap. 11 de *Rapid Sensory Profiling Techniques*), Meyners, Castura y Carr (2013) y Ares et al. (2014).
 Se publica en **https://acatania.shinyapps.io/cata/** (dirección configurada en `config.json` de la app LibreSense, `shinyCata`).
 
 Pestañas: datos (consumidores y controles), aceptabilidad (ANOVA, Tukey, distribución), términos (frecuencias, Q de Cochran,

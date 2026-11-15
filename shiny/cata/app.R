@@ -4,8 +4,8 @@
 # Se abre desde la administración de un estudio CATA ("Análisis completo en R"),
 # o se usa sola subiendo el CSV de resultados que descarga la app.
 #
-# Métodos: Ares y Jaeger (2015), cap. CATA de Varela y Ares (eds.), Novel Techniques in Sensory
-# Characterization and Consumer Profiling; Meyners, Castura y Carr (2013); Ares et al. (2014).
+# Métodos: Meyners y Castura (2014), cap. 11 de Varela y Ares (eds.), Novel Techniques in Sensory
+# Characterization and Consumer Profiling; Ares y Jaeger (2015), cap. 11 de Delarue et al. (eds.), Rapid Sensory Profiling Techniques; Meyners, Castura y Carr (2013); Ares et al. (2014).
 # =====================================================================================
 library(shiny)
 library(bslib)
@@ -77,7 +77,7 @@ ui <- page_navbar(
         checkboxInput("solo_sig_ca", "Solo los términos que discriminan (Cochran p < 0,05)", TRUE),
         checkboxInput("ca_ideal", "Mostrar el producto ideal (fila suplementaria)", TRUE),
         checkboxInput("ca_agrado", "Mostrar la dirección de la aceptabilidad (variable suplementaria)", TRUE),
-        ayuda("Análisis de correspondencias (FactoMineR::CA) sobre la tabla de frecuencias, como recomiendan Ares y Jaeger. El ideal y la aceptabilidad no modifican el mapa: se proyectan."),
+        ayuda("Análisis de correspondencias (FactoMineR::CA) sobre la tabla de frecuencias, como recomiendan Meyners y Castura. El ideal y la aceptabilidad no modifican el mapa: se proyectan."),
         hr(), h6("Inercia por dimensión"), tableOutput("t_inercia"), uiOutput("u_chi")))),
 
   nav_panel("Penalidades", icon = icon("arrow-trend-down"),
@@ -168,7 +168,7 @@ server <- function(input, output, session) {
     tagList(
       div(class = "small mb-2", sprintf("Términos marcados por evaluación: %.1f en promedio (mín. %d, máx. %d).", mean(tpm), min(tpm), max(tpm))),
       if (any(tpm == 0)) div(class = "alert alert-warning small", sum(tpm == 0), " evaluaciones sin ningún término marcado."),
-      if (min(n) < 50) div(class = "alert alert-warning small", "Hay productos con menos de 50 evaluaciones: Ares y Jaeger recomiendan al menos 50–100 consumidores para resultados estables."),
+      if (min(n) < 50) div(class = "alert alert-warning small", "Hay productos con menos de 50 evaluaciones: Ares y Jaeger (2015) recomiendan al menos 50–100 consumidores para resultados estables."),
       if (length(planos)) div(class = "alert alert-warning small", "Consumidores que dieron el mismo puntaje a todo: ", paste(planos, collapse = ", ")),
       if (length(setdiff(a$terminos, a$usados))) div(class = "small text-muted", "Nunca marcados: ", paste(setdiff(a$terminos, a$usados), collapse = ", ")),
       div(class = "small text-muted", "Bloques completos para Cochran (consumidor × repetición con todos los productos): ", co()$bloques)) })

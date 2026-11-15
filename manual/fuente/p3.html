@@ -1,0 +1,133 @@
+
+<!-- ===================================================================== 6 ADC -->
+<h1 id="t-adc"><span class="num">6</span>Análisis Descriptivo Cuantitativo (ADC)</h1>
+<div class="tecnica-cab"><p>El perfil clásico: un panel entrenado puntúa la intensidad de una lista fija de atributos en una escala de 0 a 10.</p></div>
+<div class="ficha">
+  <b>Panel</b><span>Entrenado (8–12 personas), con atributos y referencias acordados en sesiones previas.</span>
+  <b>Muestras</b><span>De a una, en orden de Williams, con código de 3 cifras. 4–8 vinos por sesión.</span>
+  <b>Repeticiones</b><span>2–3, para evaluar la repetibilidad del panel.</span>
+  <b>Datos</b><span>Un valor de 0 a 10 (con un decimal) por atributo, muestra y panelista.</span>
+</div>
+<h2>Qué hace el panelista</h2>
+<div class="dos">
+  <figure class="movil"><img src="img/adc.jpg"><figcaption>ADC en el celular: un deslizador por atributo, agrupados por modalidad.</figcaption></figure>
+  <div style="flex:1.4">
+    <p>Para cada muestra ve el código y un deslizador de 0 a 10 por atributo. Mueve cada uno hasta la intensidad percibida; el valor aparece al lado con un decimal.
+    Los atributos que no toca quedan en 0 (ausente).</p>
+    <p>Al terminar toca <b>Enviar y continuar</b>. Puede volver a la muestra anterior y corregir.</p>
+    <div class="caja ojo"><span class="tit">El 0 cuenta</span><p>Un atributo sin mover se guarda como 0. Si un panelista se olvida de un atributo, ese 0 baja la media.
+    En el entrenamiento conviene insistir en revisar todos los deslizadores antes de enviar.</p></div>
+  </div>
+</div>
+<h2>Análisis en vivo</h2>
+<ul>
+  <li><b>Medias por vino</b> de cada atributo, con un mapa de calor, y la <b>prueba F</b> de un ANOVA de dos factores (vino + panelista), con su valor p.
+  Los atributos se ordenan del más al menos discriminante.</li>
+  <li><b>PCA</b> (análisis de componentes principales) sobre las medias, estandarizado (igual que <code>FactoMineR::PCA</code> con <code>scale.unit = TRUE</code>).
+  Se puede limitar a los atributos que discriminan (p &lt; 0,05 o p &lt; 0,10) y filtrar por sesión. El gráfico se descarga en SVG.</li>
+</ul>
+<h2>Cómo interpretarlo</h2>
+<ul>
+  <li>Un atributo con p &lt; 0,05 diferencia significativamente a los vinos. Uno con p alto no los diferencia (o el panel no lo usa de manera consistente).</li>
+  <li>En el PCA, los vinos cerca entre sí tienen perfiles parecidos; las flechas indican hacia dónde aumenta cada atributo. Un vino ubicado en la dirección de una flecha
+  tiene ese atributo por encima del promedio. Flechas en la misma dirección = atributos correlacionados; opuestas = inversamente relacionados.</li>
+  <li>El ANOVA en vivo es orientativo. Para el análisis formal (efecto panelista, interacción vino × panelista, repetibilidad, comparaciones de a pares) se usa el CSV en R
+  (capítulo 13), por ejemplo con <code>SensoMineR::panelperf</code> y <code>decat</code>.</li>
+</ul>
+
+<!-- ===================================================================== 7 RATA -->
+<h1 id="t-rata"><span class="num">7</span>RATA (Rate-All-That-Apply)</h1>
+<div class="tecnica-cab"><p>Una variante de CATA con intensidad: el panelista marca solo los descriptores presentes y les asigna una intensidad (bajo, medio, alto).</p></div>
+<div class="ficha">
+  <b>Panel</b><span>Semi-entrenado o entrenado; también funciona con consumidores (más numerosos).</span>
+  <b>Muestras</b><span>De a una, Williams, código de 3 cifras.</span>
+  <b>Escala</b><span>3 puntos (bajo · medio · alto) o 5 puntos.</span>
+  <b>Datos</b><span>0 si el descriptor no se marcó; 1, 2, 3 (o 1–5) según la intensidad elegida.</span>
+</div>
+<p>RATA permite listas largas (20–40 descriptores) sin que el panelista tenga que puntuar todo: solo trabaja con lo que percibe. Es más rápido de entrenar que el ADC
+y discrimina mejor que CATA porque agrega la intensidad.</p>
+<div class="dos">
+  <figure class="medio"><img src="img/rata.jpg"><figcaption>RATA: al tocar un descriptor se abre la escala de intensidad.</figcaption></figure>
+</div>
+<h2>Qué hace el panelista</h2>
+<p>Toca cada descriptor presente; se abre la escala y elige la intensidad. Si toca un descriptor y no elige intensidad, la app no le deja enviar la muestra y le marca cuál falta.
+Para desmarcar, vuelve a tocar el descriptor.</p>
+<h2>Análisis en vivo</h2>
+<ul>
+  <li><b>Medias por vino</b> (con el 0 de “no marcado” incluido) y, entre paréntesis, el <b>% de citación</b> (cuántas veces se marcó).</li>
+  <li><b>ANOVA</b> por descriptor y <b>PCA</b>, como en el ADC. Además se puede hacer el PCA solo con los descriptores citados al menos el 10% de las veces en algún vino.</li>
+</ul>
+<div class="caja nota"><span class="tit">Por qué se incluye el 0</span><p>Meyners, Jaeger y Ares (2016) mostraron que conviene analizar RATA tratando “no marcado” como 0 en la misma escala
+(0 = ausente, 1–3 = intensidad). Analizar solo las intensidades de quienes marcaron el descriptor pierde información y sesga las comparaciones.</p></div>
+<figure><img src="img/rata_analisis.jpg"><figcaption>Análisis en vivo de un RATA: PCA y tabla de medias con el % de citación.</figcaption></figure>
+
+<!-- ===================================================================== 8 CATA -->
+<h1 id="t-cata"><span class="num">8</span>CATA con aceptabilidad</h1>
+<div class="tecnica-cab"><p>Para consumidores: cuánto les gusta cada vino y qué términos lo describen. Con la pregunta del vino ideal, dice además qué le falta y qué le sobra a cada vino.</p></div>
+<div class="ficha">
+  <b>Panel</b><span>Consumidores, sin entrenamiento: al menos 50–100 (Ares y Jaeger, 2015).</span>
+  <b>Muestras</b><span>De a una, Williams. Lo habitual: una sola sesión con todas las muestras, 1 repetición.</span>
+  <b>Términos</b><span>10–40, simples y entendibles por consumidores (de un estudio previo, la bibliografía o preguntas abiertas). Orden al azar por consumidor.</span>
+  <b>Datos</b><span>Aceptabilidad de 1 a 9; cada término 1 (marcado) o 0. Opcional: el ideal de cada consumidor (mismos términos, una vez).</span>
+</div>
+<h2>Configuración</h2>
+<ul>
+  <li><b>Preguntar cuánto le gusta</b> (escala hedónica de 9 puntos): necesario para las penalidades. Se pregunta <i>antes</i> de la lista, para que los términos no influyan en el agrado.</li>
+  <li><b>Vino ideal</b>: al terminar sus muestras, cada consumidor marca los términos que tendría el vino de ese tipo que más le gustaría. Se pregunta una sola vez.</li>
+  <li>El nombre “Aceptabilidad” está reservado para la escala: no se puede usar como término.</li>
+</ul>
+<h2>Qué hace el consumidor</h2>
+<div class="dos">
+  <figure class="alto"><img src="img/cata_movil.jpg"><figcaption>Primero el agrado (1 a 9), después los términos.</figcaption></figure>
+  <figure class="movil"><img src="img/cata_ideal.jpg"><figcaption>Al final, el vino ideal.</figcaption></figure>
+</div>
+<p>Elige una opción de la escala (“Me gusta mucho”, “Ni me gusta ni me disgusta”…; sin ella no puede seguir) y marca todos los términos que correspondan, varios o ninguno.
+Si cerró la app antes de responder el ideal, en su lista de sesiones aparece “Falta una pregunta: tu vino ideal”.</p>
+
+<h2>Análisis en vivo</h2>
+<figure><img src="img/cata_analisis1.jpg"><figcaption>Aceptabilidad y frecuencia de citación, con la Q de Cochran de cada término.</figcaption></figure>
+<h3>Aceptabilidad</h3>
+<p>Media, desvío, % de consumidores a los que les gusta (6–9) y les disgusta (1–4), y la prueba F de un ANOVA vino + consumidor.
+Mirá las dos cosas: dos vinos con la misma media pueden tener uno que divide opiniones (mucho “me gusta” y mucho “me disgusta”) y otro que no entusiasma a nadie.</p>
+<h3>Frecuencia de citación y Q de Cochran</h3>
+<p>Cuántos consumidores marcaron cada término para cada vino (y para el ideal). La <b>Q de Cochran</b> prueba si un término se marca más en unos vinos que en otros;
+es la prueba adecuada para datos 0/1 de los mismos consumidores (Meyners, Castura y Carr, 2013). Los términos aparecen ordenados del más al menos discriminante.</p>
+<h3>Mapa de correspondencias</h3>
+<p>Ubica vinos y términos en un mismo mapa: cada vino queda cerca de los términos que más se usaron para describirlo. El <b>ideal</b> (★) se proyecta sobre el mapa sin modificarlo:
+los vinos más cercanos a la estrella son los más parecidos a lo que buscan los consumidores. La prueba χ² indica si las diferencias entre vinos en la tabla son significativas.</p>
+<h3>Penalidades: qué sube y qué baja el agrado</h3>
+<p>Para cada término se compara la aceptabilidad media de las evaluaciones en que se marcó con la de las que no (t de Welch). En el gráfico, el eje horizontal es cuántas veces se marcó
+y el vertical la diferencia de agrado:</p>
+<ul>
+  <li><b>Arriba (verde)</b>: impulsores del agrado. Si además están a la derecha (se marcan mucho), son atributos clave.</li>
+  <li><b>Abajo (rojo)</b>: defectos o atributos que restan.</li>
+  <li><b>Cerca del cero (gris)</b>: no se asocian con el agrado.</li>
+</ul>
+<figure><img src="img/cata_analisis2.jpg"><figcaption>Impacto de cada término en la aceptabilidad y penalidades respecto del ideal.</figcaption></figure>
+<h3>Penalidades respecto del ideal</h3>
+<p>Siguiendo a Ares y colaboradores (2014), para cada término se separan dos situaciones:</p>
+<ul>
+  <li><b>Falta</b>: el consumidor lo quiere (está en su ideal) y el vino no lo tiene. Si en esos casos el agrado cae, el término <b>“debe estar”</b>.</li>
+  <li><b>Sobra</b>: el vino lo tiene y el consumidor no lo quiere. Si el agrado cae, el término <b>“no debe estar”</b>.</li>
+</ul>
+<p>Se destacan los que ocurren en al menos el 20% de las evaluaciones y con una caída significativa (p &lt; 0,05): son las primeras pistas para reformular un producto.</p>
+<div class="caja ojo"><span class="tit">Asociación no es causa</span><p>Que “astringente” baje el agrado no significa que sacar astringencia lo vaya a subir: los términos aparecen juntos
+(un vino astringente quizás también es amargo y poco frutado). Las penalidades marcan dónde mirar; la decisión se confirma con un nuevo ensayo.</p></div>
+
+<h2>Análisis completo en R</h2>
+<p>El botón <b>Análisis completo en R (Shiny)</b> abre <a href="https://acatania.shinyapps.io/cata/">acatania.shinyapps.io/cata</a> con los datos del estudio. Agrega:</p>
+<ul>
+  <li><b>Aceptabilidad</b>: medias con letras de la prueba de Tukey (vinos con la misma letra no difieren), tabla del ANOVA y distribución de las respuestas en la escala.</li>
+  <li><b>Términos</b>: mapa de calor con letras de McNemar de a pares en cada término significativo (con ajuste de Holm o Bonferroni opcional).</li>
+  <li><b>Mapa</b>: correspondencias con el ideal y la <b>dirección de la aceptabilidad</b> como flecha (variable suplementaria).</li>
+  <li><b>Penalidades</b> para todos los vinos o para uno en particular, con un umbral ajustable, y la <b>diferencia de cada vino con el ideal</b>, término por término.</li>
+  <li><b>Consumidores</b>: mapa de preferencias interno (cada consumidor es una flecha que apunta a los vinos que más le gustaron) y <b>segmentos</b> de consumidores con gustos distintos,
+  con los términos que valora cada segmento.</li>
+  <li>Informe en Word o HTML, Excel con todas las tablas y el código R equivalente.</li>
+</ul>
+<div class="dos">
+  <figure><img src="img/sh_cata_ac.jpg"><figcaption>Shiny CATA: aceptabilidad con letras de Tukey.</figcaption></figure>
+  <figure><img src="img/sh_cata_term.jpg"><figcaption>Shiny CATA: frecuencias con letras de McNemar.</figcaption></figure>
+</div>
+<div class="caja idea"><span class="tit">Los segmentos importan</span><p>Si un vino tiene una media de agrado intermedia, mirá la pestaña Consumidores: puede ser que a un grupo le encante y a otro no.
+Un vino “promedio” para todos y un vino que enamora a un 40% de los consumidores son decisiones comerciales muy distintas.</p></div>

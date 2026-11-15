@@ -1,0 +1,134 @@
+
+<!-- ===================================================================== 9 FLASH -->
+<h1 id="t-flash"><span class="num">9</span>Perfil Flash</h1>
+<div class="tecnica-cab"><p>Cada panelista crea sus propios descriptores y, para cada uno, ordena todas las copas de menos a más. Según Delarue (cap. 7 de Varela y Ares, 2014).</p></div>
+<div class="ficha">
+  <b>Panel</b><span>Personas con experiencia en describir (enólogos, panel semi-entrenado); 5–10 alcanzan. No necesita entrenamiento en atributos comunes.</span>
+  <b>Muestras</b><span>Todas juntas, identificadas con <b>letras</b> (A, B, C…) sorteadas entre los vinos e iguales para todos. Sin Williams. Hasta 26 copas, duplicados incluidos.</span>
+  <b>Sesiones</b><span>Lo habitual es una; cada repetición es una sesión con otro sorteo de letras.</span>
+  <b>Datos</b><span>Para cada panelista y descriptor, el rango de cada copa (1 = menos intenso). Empates permitidos: reciben el rango promedio.</span>
+</div>
+<h2>Qué hace el panelista</h2>
+<ol>
+  <li><b>Escribe sus descriptores.</b> Prueba todas las copas, comparándolas, y anota los atributos que le permiten <i>diferenciarlas</i> (no hedónicos: nada de “rico” o “feo”).
+  Puede agregar una definición y cómo evalúa los extremos. Si el estudio tiene una lista de ayuda, la puede desplegar y tocar los términos que le sirvan.</li>
+  <li><b>Ordena las copas en cada descriptor.</b> Arrastra las letras con el dedo sobre una línea que va de “menos” a “más”. Si dos copas le parecen iguales, las <b>apila</b> (empate).
+  También puede tocar una copa y después el lugar. Pasa al siguiente descriptor y puede volver atrás, editar sus descriptores o agregar uno nuevo si descubre otra diferencia.</li>
+  <li><b>Revisa y envía</b> la sesión completa.</li>
+</ol>
+<div class="dos">
+  <figure><img src="img/flash_desc.jpg"><figcaption>Paso 1: los descriptores propios.</figcaption></figure>
+  <figure><img src="img/flash_rank.jpg"><figcaption>Paso 2: ordenar las copas. Las apiladas (B y E) están empatadas.</figcaption></figure>
+</div>
+<h2>Análisis en vivo</h2>
+<ul>
+  <li><b>Mapa de consenso</b> por Análisis Factorial Múltiple (AFM / MFA): cada panelista es un grupo de variables (sus descriptores), y el mapa resume en qué coinciden.
+  Los descriptores de cada panelista se dibujan como flechas.</li>
+  <li><b>Términos más usados</b> por todo el panel.</li>
+  <li><b>Descriptores de cada panelista</b> y su <b>acuerdo con el consenso</b> (coeficiente RV): un panelista con RV bajo ordenó las copas de forma muy distinta al resto.</li>
+</ul>
+<figure class="alto"><img src="img/flash_analisis.jpg"><figcaption>Análisis en vivo de un Perfil Flash: mapa de consenso (AFM) con los descriptores de cada panelista.</figcaption></figure>
+<h2>Cómo interpretarlo</h2>
+<ul>
+  <li>Los vinos cerca entre sí fueron ordenados de forma parecida en los descriptores de todos los panelistas.</li>
+  <li>Las flechas de distintos panelistas que apuntan hacia el mismo lado, aunque tengan nombres distintos (“frutos rojos” y “frutado”), describen la misma dimensión:
+  así se construye el vocabulario común del panel.</li>
+  <li>Los descriptores con flechas cortas no se relacionan con las dos primeras dimensiones (o el panelista no los usó de forma consistente).</li>
+</ul>
+<h2>Análisis completo en R</h2>
+<p><a href="https://acatania.shinyapps.io/perfilflash/">acatania.shinyapps.io/perfilflash</a> agrega: mapa por <b>GPA</b> (Procrustes generalizado) o MFA, en las dimensiones 1-2, 1-3 o 2-3;
+<b>elipses de confianza</b> por paneles virtuales (<code>SensoMineR::boot</code>); círculo de correlaciones filtrable; RV y residuo de Procrustes de cada panelista; mapa individual;
+clasificación de los vinos (HCPC) con los descriptores que caracterizan a cada grupo; duplicados y sesiones; informe, Excel y código R.</p>
+<figure class="medio"><img src="img/sh_flash.jpg"><figcaption>Shiny Perfil Flash: mapa de consenso.</figcaption></figure>
+<div class="caja idea"><span class="tit">Consejos del capítulo 7</span><ul>
+  <li>Los descriptores son del panelista: no se corrigen ni se unifican antes del análisis; el AFM se encarga de encontrar lo común.</li>
+  <li>Con pocos panelistas (menos de 4) el mapa es inestable.</li>
+  <li>Más que la cantidad de descriptores importa que cada uno diferencie las copas: un descriptor donde todas quedan empatadas no aporta.</li>
+</ul></div>
+
+<!-- ===================================================================== 10 NAPPING -->
+<h1 id="t-nap"><span class="num">10</span>Napping (mapeo proyectivo)</h1>
+<div class="tecnica-cab"><p>Cada panelista ubica las muestras en una hoja: las que percibe parecidas, cerca; las distintas, lejos. El criterio lo decide él. Según Dehlholm (cap. 9 de Varela y Ares, 2014).</p></div>
+<div class="ficha">
+  <b>Panel</b><span>Entrenado o consumidores; en la bibliografía, de 8 a 80 personas. Con consumidores, más.</span>
+  <b>Muestras</b><span>Al menos 4. Se prueban de a una en orden de Williams (códigos de 3 cifras) y se ubican en la misma hoja.</span>
+  <b>Hoja</b><span>Rectangular 60 × 40 cm (Napping), cuadrada 60 × 60 cm o redonda de 40 cm.</span>
+  <b>Datos</b><span>Coordenadas X, Y de cada muestra, en cm desde la esquina inferior izquierda. Opcional: palabras para cada muestra.</span>
+</div>
+<h2>Variantes</h2>
+<ul>
+  <li><b>Global</b>: una hoja, criterio libre. Es la forma clásica.</li>
+  <li><b>Parcial</b>: una hoja por foco (por ejemplo aspecto, aroma, boca), una después de la otra, mirando solo ese aspecto. Hasta 6 focos.</li>
+  <li><b>Palabras (Ultra Flash Profile)</b>: después de ubicar, el panelista escribe algunas palabras para cada muestra. Opcionales, obligatorias o ninguna.</li>
+  <li><b>Forma de la hoja</b>: influye. En la rectangular se tiende a dar más importancia a la dirección horizontal; la cuadrada y la redonda son más neutrales.</li>
+</ul>
+<h2>Qué hace el panelista</h2>
+<div class="dos">
+  <figure><img src="img/nap_hoja.jpg"><figcaption>La hoja: las muestras se arrastran desde la bandeja.</figcaption></figure>
+  <figure><img src="img/nap_palabras.jpg"><figcaption>Palabras para cada muestra.</figcaption></figure>
+</div>
+<p>Prueba las muestras en el orden indicado y las arrastra a la hoja (o toca una muestra y luego el lugar). Puede moverlas y volver a probarlas todas las veces que quiera.
+La consigna es usar toda la hoja. Después escribe las palabras, revisa y envía.</p>
+<h2>Análisis en vivo</h2>
+<ul>
+  <li><b>Mapa de consenso</b> por AFM con las coordenadas sin estandarizar (<code>type = "c"</code>), como propone el capítulo, y las palabras como grupo suplementario (no modifican el mapa).</li>
+  <li><b>Palabras más usadas</b> por muestra.</li>
+  <li><b>Panelistas</b>: acuerdo de cada uno con el consenso (RV) e <b>índice de desempeño</b> con los duplicados.</li>
+  <li><b>Mapas individuales</b>: cómo ubicó cada panelista las muestras.</li>
+</ul>
+<figure class="alto"><img src="img/nap_analisis.jpg"><figcaption>Análisis en vivo de un Napping parcial (foco Aroma): mapa de consenso con las palabras.</figcaption></figure>
+<h2>Cómo interpretarlo</h2>
+<ul>
+  <li>Las distancias del mapa reflejan cuán distintas percibió el panel a las muestras, pero no dicen <i>en qué</i>: para eso están las palabras.</li>
+  <li>El Napping es rápido pero poco preciso (“quick and dirty”): conviene interpretar las dos primeras dimensiones y los grupos de muestras, no pequeñas distancias.</li>
+  <li>Los mapas individuales muestran estrategias distintas: en línea, en L, dispersas, amontonadas o en grupos (Dehlholm, fig. 9.1). Un panelista que amontonó todo
+  en un rincón usó poco la hoja y aporta poca información.</li>
+</ul>
+<h2>Análisis completo en R</h2>
+<p><a href="https://acatania.shinyapps.io/napping/">acatania.shinyapps.io/napping</a>: mapa de consenso con los puntos de cada panelista, <b>elipses de confianza</b> (Dehlholm et al., 2012, o paneles virtuales de
+Cadoret y Husson, 2013), palabras (mapa, <code>descfreq</code>, frecuencias, nube), RV y uso de la hoja de cada panelista, hojas individuales y superpuestas al consenso (Procrustes),
+clasificación (HCPC), repetibilidad (duplicados, índice de Hopfer y Heymann, sesiones), informe y código R.</p>
+<figure class="medio"><img src="img/sh_nap.jpg"><figcaption>Shiny Napping: mapa de consenso.</figcaption></figure>
+
+<!-- ===================================================================== 11 SORTING -->
+<h1 id="t-sort"><span class="num">11</span>Sorting (agrupamiento libre)</h1>
+<div class="tecnica-cab"><p>Cada panelista arma grupos con las muestras que le parecen parecidas, con el criterio que quiera, y puede describir cada grupo.
+Según Chollet, Valentin y Abdi (cap. 8 de Varela y Ares, 2014).</p></div>
+<div class="ficha">
+  <b>Panel</b><span>Entrenado o consumidores; al menos 15–20 personas para un mapa estable.</span>
+  <b>Muestras</b><span>Todas juntas, con códigos de 3 cifras y un orden de cata sugerido (Williams). Lo habitual: 6–20. Mínimo 4.</span>
+  <b>Reglas</b><span>Tantos grupos como quiera y de cualquier tamaño, pero no todas en un grupo ni cada una sola.</span>
+  <b>Datos</b><span>El número de grupo de cada muestra para cada panelista y, si se pidieron, las palabras de cada grupo.</span>
+</div>
+<h2>Qué hace el panelista</h2>
+<div class="dos">
+  <figure class="movil"><img src="img/sort_grupos.jpg"><figcaption>Armar los grupos arrastrando las copas.</figcaption></figure>
+  <figure class="movil"><img src="img/sort_palabras.jpg"><figcaption>Describir cada grupo con palabras.</figcaption></figure>
+</div>
+<p>Prueba las muestras (primero en el orden sugerido, después las que quiera) y arrastra cada copa a un grupo o a “+ Nuevo grupo”. En el celular también puede tocar la copa y después el grupo.
+Puede rearmar los grupos todas las veces que quiera; lo hecho queda guardado si sale. Si intenta seguir con todas las copas juntas o cada una sola, la app se lo indica.
+Después describe cada grupo (lo que tienen en común las muestras), revisa y envía.</p>
+<h2>Análisis en vivo</h2>
+<ul>
+  <li><b>Mapa de las muestras</b>: MDS clásico (como <code>cmdscale</code>) sobre la disimilitud “1 − proporción de panelistas que juntó cada par”. Las palabras se ubican en el promedio de las muestras donde se usaron.</li>
+  <li><b>Grupos de muestras</b> (clasificación jerárquica), con la cantidad de grupos que elijas.</li>
+  <li><b>Co-ocurrencias</b>: % de panelistas que puso cada par de muestras en el mismo grupo.</li>
+  <li><b>Palabras más usadas</b> por muestra, <b>duplicados</b> (% de panelistas que lo juntó con su original) y <b>los grupos de cada panelista</b> con sus palabras.</li>
+</ul>
+<figure class="alto"><img src="img/sort_analisis.jpg"><figcaption>Análisis en vivo de un Sorting: mapa, grupos de muestras, duplicados y co-ocurrencias.</figcaption></figure>
+<h2>Cómo interpretarlo</h2>
+<ul>
+  <li>Dos muestras cerca en el mapa fueron puestas juntas por muchos panelistas. La tabla de co-ocurrencias da el número exacto.</li>
+  <li>Los panelistas suelen agrupar por criterios distintos (color, aroma, cuerpo, calidad): el mapa muestra en qué coinciden. Las palabras explican por qué se formaron los grupos.</li>
+  <li>Panelistas que hicieron solo 2 grupos con muchas muestras suelen haber separado por un único criterio y aportan poca información.</li>
+</ul>
+<h2>Resultados y análisis completo en R</h2>
+<p>En Resultados están la <b>matriz de grupos</b> (una fila por muestra, una columna por panelista; el formato de <code>FactoMineR::MCA</code>), la <b>matriz con palabras</b>
+(para <code>SensoMineR::fast</code>), las co-ocurrencias, el formato largo y el código R.</p>
+<p><a href="https://acatania.shinyapps.io/sorting/">acatania.shinyapps.io/sorting</a> ofrece el mapa con tres métodos —<b>correspondencias múltiples</b> (Cadoret, Lê y Pagès, 2009),
+<b>DISTATIS</b> (Abdi y colaboradores, 2007) y MDS—, <b>elipses de confianza</b> por bootstrap de panelistas, clasificación de las muestras, palabras que caracterizan a cada muestra y a cada grupo,
+el <b>peso de cada panelista</b> en DISTATIS (los que coinciden más con el resto pesan más), el parecido entre panelistas, duplicados, sesiones, informe y código R.</p>
+<div class="dos">
+  <figure><img src="img/sh_sort.jpg"><figcaption>Shiny Sorting: DISTATIS con elipses de confianza.</figcaption></figure>
+  <figure><img src="img/sh_sort_pan.jpg"><figcaption>Peso de cada panelista y mapa de panelistas.</figcaption></figure>
+</div>
