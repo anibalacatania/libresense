@@ -6,7 +6,10 @@ export const TECNICAS = {
   rata: { nombre: 'RATA (Rate-All-That-Apply)', corto: 'RATA', color: 'bg-pink-100 text-pink-700' },
   flash: { nombre: 'Perfil Flash', corto: 'Flash', color: 'bg-amber-100 text-amber-800' },
   napping: { nombre: 'Napping (mapeo proyectivo)', corto: 'Napping', color: 'bg-emerald-100 text-emerald-800' },
+  cata: { nombre: 'CATA con aceptabilidad', corto: 'CATA', color: 'bg-sky-100 text-sky-800' },
 };
+// palabra para la lista fija de cada técnica
+export const palabraLista = t => (t === 'rata' ? 'descriptores' : t === 'cata' ? 'términos' : 'atributos');
 export const nombreTecnica = t => (TECNICAS[t] || TECNICAS.descriptiva).nombre;
 
 export const ESCALAS_RATA = {

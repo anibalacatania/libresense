@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as datos from 'datos';
 import { ordenNatural, tamaniosSesiones, generarDiseno, generarDisenoFlash, LETRAS } from './diseno.js';
-import { TECNICAS, nombreTecnica, etiquetasRata, parsearDescriptores, bloquesDe, rangosDesdePosiciones, HOJAS, claveX, claveY } from './tecnicas.js';
+import { GUSTO, HEDONICA, analizarCata } from './cata.js';
+import { TECNICAS, nombreTecnica, palabraLista, etiquetasRata, parsearDescriptores, bloquesDe, rangosDesdePosiciones, HOJAS, claveX, claveY } from './tecnicas.js';
 import { analizar, afm } from './analisis.js';
 
 // ---- almacenamiento local seguro (copias para mostrar la app al instante)
@@ -74,6 +75,12 @@ function PanelApp() {
   const atributos = estudio ? estudio.atributos : [];
   const unicoEstudio = estudios && estudios.length === 1;
   const esRata = estudio && estudio.tecnica === 'rata';
+  const esCata = estudio && estudio.tecnica === 'cata';
+  const conGusto = esCata && !(estudio.cata && estudio.cata.gusto === false);
+  const conIdeal = esCata && !!(estudio.cata && estudio.cata.ideal);
+  const [idealLocal, setIdealLocal] = useState(false);
+  const idealHecho = idealLocal || !!(progreso && progreso._ideal && progreso._ideal.length);
+  const claves = conGusto ? [GUSTO, ...atributos] : atributos;
   const bloques = useMemo(() => (estudio ? bloquesDe(estudio, `${eid}|${valuador}`) : []), [estudio, eid, valuador]);
 
   const elegirEstudio = (e) => {
@@ -124,7 +131,7 @@ function PanelApp() {
     return Object.keys(por).sort(ordenNatural).map(s => ({ Sesion: s, filas: por[s].sort((a, b) => a.Orden - b.Orden) }));
   }, [diseno, valuador]);
 
-  const ceros = () => { const o = {}; atributos.forEach(a => o[a] = 0); return o; };
+  const ceros = () => { const o = {}; claves.forEach(a => o[a] = 0); return o; };
 
   const abrirSesion = (s) => {
     const hechas = respondidas(s.Sesion);
@@ -145,8 +152,13 @@ function PanelApp() {
         return;
       }
     }
+    if (conGusto && !(valores[GUSTO] >= 1)) {
+      setFaltan([GUSTO]);
+      const el = document.getElementById('gusto'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     setFaltan([]);
-    const vals = {}; atributos.forEach(a => { vals[a] = Number(valores[a] ?? 0); });
+    const vals = {}; claves.forEach(a => { vals[a] = Number(valores[a] ?? 0); });
     datos.guardarRespuesta(eid, { Sesion: sesion.Sesion, Valuador: valuador, Orden: f.Orden, CodigoProducto: f.CodigoProducto, valores: vals })
       .catch(e => { if (e && e.code === 'permission-denied') setCerrado(true); });
     const nb = { ...buffer, [f.Orden]: { ...valores } };
@@ -156,7 +168,11 @@ function PanelApp() {
     const todas = respondidas(sesion.Sesion); hechas.forEach(o => todas.add(o));
     let sig = filas.findIndex((x, i) => i > idx && !todas.has(x.Orden));
     if (sig === -1) sig = filas.findIndex(x => !todas.has(x.Orden));
-    if (sig === -1) { setVista('finSesion'); window.scrollTo(0, 0); return; }
+    if (sig === -1) {
+      if (conIdeal && !idealHecho) { setValores(Object.fromEntries(atributos.map(a => [a, 0]))); setVista('ideal'); }
+      else setVista('finSesion');
+      window.scrollTo(0, 0); return;
+    }
     setIdx(sig); setValores(nb[filas[sig].Orden] || ceros()); window.scrollTo(0, 0);
   };
   const cambiar = (a, v) => { setValores(prev => ({ ...prev, [a]: v })); if (v !== -1) setFaltan(x => x.filter(y => y !== a)); };
@@ -210,11 +226,11 @@ function PanelApp() {
           <div className="w-14 h-14 mx-auto text-purple-600 mb-3"><Wine/></div>
           <h1 className="text-3xl font-bold text-gray-800 mb-1">{estudio.nombre}</h1>
           <p className="text-gray-600">Seleccioná tu número de panelista</p>
-          <p className="text-xs text-gray-400 mt-1">{nombreTecnica(estudio.tecnica)} • {estudio.sesiones.length} sesiones{estudio.tecnica === 'flash' || estudio.tecnica === 'napping' ? '' : ` • ${atributos.length} ${esRata ? 'descriptores' : 'atributos'}`}</p>
+          <p className="text-xs text-gray-400 mt-1">{nombreTecnica(estudio.tecnica)} • {estudio.sesiones.length} sesiones{estudio.tecnica === 'flash' || estudio.tecnica === 'napping' ? '' : ` • ${atributos.length} ${palabraLista(estudio.tecnica)}`}</p>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-96 overflow-y-auto">
           {estudio.panelistas.map(v => (
-            <button key={v} onClick={() => { setValuador(v); setHechasLocal({}); setVista('sesiones'); }}
+            <button key={v} onClick={() => { setValuador(v); setHechasLocal({}); setIdealLocal(false); setVista('sesiones'); }}
               className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 rounded-lg">{v}</button>
           ))}
         </div>
@@ -261,6 +277,12 @@ function PanelApp() {
                 );
               })}
               {!misSesiones.length && <p className="text-gray-500 text-center">No tenés sesiones asignadas.</p>}
+              {conIdeal && !idealHecho && misSesiones.length > 0 && misSesiones.every(s => respondidas(s.Sesion).size >= s.filas.length) && (
+                <button onClick={() => { const s = misSesiones[misSesiones.length - 1]; setSesion(s); setFilas(s.filas); setValores(Object.fromEntries(atributos.map(a => [a, 0]))); setVista('ideal'); }}
+                  className="w-full text-left rounded-xl p-4 border-2 bg-sky-50 border-sky-300 hover:border-sky-500">
+                  <p className="font-bold text-lg text-gray-800">Falta una pregunta: tu vino ideal</p>
+                  <p className="text-sm text-sky-700">Tocá para responderla →</p>
+                </button>)}
             </div>}
         <div className="mt-5 text-center"><EstadoNube pendientes={pendientes} /></div>
       </Tarjeta>
@@ -282,6 +304,33 @@ function PanelApp() {
             className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 rounded-lg">Salir</button>
         </div>
       </Tarjeta>
+    );
+  }
+
+  // CATA: el vino ideal, una sola vez por consumidor, al terminar sus muestras
+  if (vista === 'ideal') {
+    const guardarIdeal = () => {
+      const vals = {}; atributos.forEach(a => { vals[a] = Number(valores[a] ?? 0); });
+      datos.guardarIdeal(eid, { Sesion: sesion.Sesion, Valuador: valuador, valores: vals })
+        .catch(e => { if (e && e.code === 'permission-denied') setCerrado(true); });
+      setIdealLocal(true); setVista('finSesion'); window.scrollTo(0, 0);
+    };
+    return (
+      <div className="min-h-screen py-6 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-5 mb-5 border border-white/20">
+            <h2 className="text-2xl font-bold text-white">Tu vino ideal</h2>
+            <p className="text-purple-100 mt-1">Última pregunta, {valuador}: imaginá el vino de este tipo que más te gustaría tomar. Marcá todos los términos que lo describirían.</p>
+            <div className="mt-1"><EstadoNube pendientes={pendientes} oscuro /></div>
+          </div>
+          <AvisoCerrado/>
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-5 mb-5 border border-white/20">
+            <EvaluacionCata bloques={bloques} valores={valores} cambiar={cambiar} gusto={false} faltan={[]} ideal />
+          </div>
+          <button onClick={guardarIdeal}
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 rounded-xl shadow-2xl text-lg">Guardar y terminar ✓</button>
+        </div>
+      </div>
     );
   }
 
@@ -336,13 +385,15 @@ function PanelApp() {
         </div>
 
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-5 mb-5 border border-white/20">
-          {esRata
+          {esCata
+            ? <EvaluacionCata bloques={bloques} valores={valores} cambiar={cambiar} gusto={conGusto} faltan={faltan} />
+            : esRata
             ? <EvaluacionRata bloques={bloques} valores={valores} cambiar={cambiar} etiquetas={etiquetasRata(estudio.escala)} faltan={faltan} />
             : <EvaluacionDescriptiva bloques={bloques} valores={valores} cambiar={cambiar} />}
         </div>
         {faltan.length > 0 && (
           <p className="mb-3 bg-red-500/90 text-white font-semibold p-3 rounded-xl text-center">
-            Falta indicar la intensidad de: {faltan.join(', ')}
+            {esCata ? 'Falta indicar cuánto te gustó la muestra' : <>Falta indicar la intensidad de: {faltan.join(', ')}</>}
           </p>
         )}
 
@@ -440,6 +491,48 @@ function EvaluacionRata({ bloques, valores, cambiar, etiquetas, faltan }) {
                 </div>
               );
             })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// CATA: primero cuánto gusta (escala hedónica de 9 puntos) y después todos los términos que describen la muestra.
+// Valores: Aceptabilidad 1–9 (0 = sin responder); cada término 1 = marcado, 0 = no.
+function EvaluacionCata({ bloques, valores, cambiar, gusto, faltan, ideal = false }) {
+  const marcados = bloques.reduce((s, b) => s + b.attrs.filter(({ k }) => valores[k] > 0).length, 0);
+  const g = valores[GUSTO] || 0, faltaG = faltan.includes(GUSTO);
+  return (
+    <div>
+      {gusto && (
+        <div id="gusto" className={`mb-6 rounded-xl p-4 bg-slate-800/70 border-2 ${faltaG ? 'border-red-500 ring-4 ring-red-500' : 'border-slate-600/60'}`}>
+          <h3 className="text-xl font-bold text-white mb-1">¿Cuánto te gusta esta muestra?</h3>
+          <p className="text-purple-200 text-sm mb-3">Elegí una opción.</p>
+          <div className="grid gap-1.5">
+            {HEDONICA.map((et, i) => { const v = 9 - i, txt = HEDONICA[v - 1]; return (
+              <button key={v} type="button" onClick={() => cambiar(GUSTO, v)}
+                className={`flex items-center gap-3 text-left px-3 py-2 rounded-lg border-2 font-semibold ${g === v ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-transparent' : 'bg-white/90 text-gray-800 border-transparent hover:border-purple-400'}`}>
+                <span className={`w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-sm font-black ${g === v ? 'bg-white text-purple-700' : 'bg-purple-100 text-purple-700'}`}>{v}</span>{txt}
+              </button>); })}
+          </div>
+        </div>
+      )}
+      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+        <h3 className="text-xl font-bold text-white">{ideal ? '¿Cómo sería tu vino ideal?' : '¿Qué términos describen esta muestra?'}</h3>
+        <span className="text-purple-200 text-sm">{marcados} marcado{marcados === 1 ? '' : 's'}</span>
+      </div>
+      <p className="text-purple-100 text-sm mb-4">Marcá <b>todos</b> los que correspondan (podés marcar varios o ninguno).</p>
+      {bloques.map((b, i) => (
+        <div key={i}>
+          <TituloGrupo b={b}/>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+            {b.attrs.map(({ k, n }) => { const on = valores[k] > 0; return (
+              <button key={k} id={'attr-' + k} type="button" onClick={() => cambiar(k, on ? 0 : 1)}
+                className={`flex items-center gap-3 px-4 py-3 text-left rounded-xl border-2 ${on ? 'bg-white border-sky-400 shadow-lg' : 'bg-slate-800/70 border-slate-600/60'}`}>
+                <span className={`w-6 h-6 shrink-0 rounded-md border-2 flex items-center justify-center font-bold ${on ? 'bg-sky-500 border-sky-500 text-white' : 'border-slate-400'}`}>{on ? '✓' : ''}</span>
+                <span className={`font-semibold text-lg ${on ? 'text-gray-900' : 'text-white'}`}>{n}</span>
+              </button>); })}
           </div>
         </div>
       ))}
@@ -1154,7 +1247,7 @@ function ListaEstudios({ abrir, nuevo, rol, yo }) {
                 <span className={`text-xs font-bold px-2 py-1 rounded-full ${e.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'}`}>{e.activo ? 'Activo' : 'Cerrado'}</span>
               </div>
               <p className="text-sm text-gray-600"><span className={`text-xs font-bold px-2 py-0.5 rounded-full mr-1 ${(TECNICAS[e.tecnica] || TECNICAS.descriptiva).color}`}>{(TECNICAS[e.tecnica] || TECNICAS.descriptiva).corto}</span>
-                {e.sesiones.length} sesiones · {e.panelistas.length} panelistas · {e.tecnica === 'flash' ? 'descriptores propios' : e.tecnica === 'napping' ? 'mapeo' : `${e.atributos.length} ${e.tecnica === 'rata' ? 'descriptores' : 'atributos'}`}</p>
+                {e.sesiones.length} sesiones · {e.panelistas.length} panelistas · {e.tecnica === 'flash' ? 'descriptores propios' : e.tecnica === 'napping' ? 'mapeo' : `${e.atributos.length} ${palabraLista(e.tecnica)}`}</p>
               {e.creado && <p className="text-xs text-gray-400 mt-1">Creado {new Date(e.creado).toLocaleDateString('es-AR')}
                 {rol === 'super' && e.dueno && e.dueno !== yo && <> · por <b className="text-gray-500">{e.dueno}</b></>}</p>}
             </button>))}
@@ -1182,8 +1275,10 @@ function NuevoEstudio({ creado, cancelar }) {
   const [parcial, setParcial] = useState(F.parcial ?? false);
   const [focosTxt, setFocosTxt] = useState(F.focosTxt ?? 'Aspecto\nAroma\nBoca');
   const [palabras, setPalabras] = useState(F.palabras ?? 'opcional');
-  useEffect(() => { LS.set('pf_form', { nombre, vinosTxt, porSesion, reps, nPan, parejo, semilla, atrTxt, tecnica, escala, ordenAzar, sugTxt, hoja, parcial, focosTxt, palabras }); },
-    [nombre, vinosTxt, porSesion, reps, nPan, parejo, semilla, atrTxt, tecnica, escala, ordenAzar, sugTxt, hoja, parcial, focosTxt, palabras]);
+  const [gusto, setGusto] = useState(F.gusto ?? true);
+  const [conIdeal, setConIdeal] = useState(F.conIdeal ?? false);
+  useEffect(() => { LS.set('pf_form', { nombre, vinosTxt, porSesion, reps, nPan, parejo, semilla, atrTxt, tecnica, escala, ordenAzar, sugTxt, hoja, parcial, focosTxt, palabras, gusto, conIdeal }); },
+    [nombre, vinosTxt, porSesion, reps, nPan, parejo, semilla, atrTxt, tecnica, escala, ordenAzar, sugTxt, hoja, parcial, focosTxt, palabras, gusto, conIdeal]);
   const [prev, setPrev] = useState(null);
   const [msg, setMsg] = useState(null);
   const [ocupado, setOcupado] = useState(false);
@@ -1192,7 +1287,7 @@ function NuevoEstudio({ creado, cancelar }) {
   const vinos = lineas(vinosTxt);
   const desc = useMemo(() => parsearDescriptores(atrTxt), [atrTxt]);
   const atributos = desc.claves;
-  const esRata = tecnica === 'rata', esFlash = tecnica === 'flash', esNap = tecnica === 'napping';
+  const esRata = tecnica === 'rata', esFlash = tecnica === 'flash', esNap = tecnica === 'napping', esCata = tecnica === 'cata';
   const juntas = esFlash || esNap;   // todas las muestras en la misma sesión, sin lista fija de atributos
   const focos = [...new Set(lineas(focosTxt).map(f => f.replace(/[_|]/g, ' ').slice(0, 30)))].slice(0, 6);
   const tareas = esNap ? (parcial ? focos : ['Global']) : [];
@@ -1219,6 +1314,7 @@ function NuevoEstudio({ creado, cancelar }) {
     if (esFlash && dupMalos.length) return setMsg({ t: 'error', m: 'Estos duplicados no están en la lista de vinos: ' + dupMalos.join(', ') });
     if (!juntas && desc.dup.length) return setMsg({ t: 'error', m: 'Hay descriptores repetidos en el mismo grupo: ' + desc.dup.join(', ') });
     if (!juntas && desc.malos.length) return setMsg({ t: 'error', m: 'Descriptores con el carácter | o demasiado largos: ' + desc.malos.join(', ') });
+    if (esCata && atributos.some(a => a.toLowerCase() === GUSTO.toLowerCase())) return setMsg({ t: 'error', m: `“${GUSTO}” está reservado para la escala de agrado: usá otro nombre de término.` });
     if (atributos.length > 300) return setMsg({ t: 'error', m: 'Máximo 300 descriptores por estudio.' });
     if (!juntas && Number(porSesion) > vinos.length) return setMsg({ t: 'error', m: `No puede haber más vinos por sesión (${porSesion}) que vinos distintos (${vinos.length}): un vino no se repite dentro de una sesión.` });
     if (vinos.length * reps > 900) return setMsg({ t: 'error', m: 'Demasiadas muestras para códigos de 3 dígitos (máx. 900 vinos × repeticiones).' });
@@ -1239,12 +1335,13 @@ function NuevoEstudio({ creado, cancelar }) {
         escala: esRata ? Number(escala) : 3, ordenAzar: juntas ? false : ordenAzar,
         sugerencias: esFlash || (esNap && palabras !== 'no') ? sugerencias : [],
         napping: esNap ? { hoja, tareas, palabras } : null,
+        cata: esCata ? { gusto, ideal: conIdeal } : null,
         sesiones: prev.sesiones.map(s => ({ Sesion: s.Sesion, NMuestras: s.NMuestras, Vinos: s.Vinos })),
         panelistas: Array.from({ length: Number(nPan) }, (_, i) => 'V' + (i + 1)),
         diseno: prev.diseno,
         parametros: { vinos, duplicados: juntas ? duplicados : [], reps: Number(reps), porSesion: porSesionEf, nPanelistas: Number(nPan), parejo, semilla: Number(semilla) },
       });
-      LS.set('pf_form', { atrTxt, porSesion, reps, nPan, parejo, tecnica, escala, ordenAzar, sugTxt, hoja, parcial, focosTxt, palabras });
+      LS.set('pf_form', { atrTxt, porSesion, reps, nPan, parejo, tecnica, escala, ordenAzar, sugTxt, hoja, parcial, focosTxt, palabras, gusto, conIdeal });
       creado(id);
     } catch (e) { setMsg({ t: 'error', m: textoError(e) }); }
     finally { setOcupado(false); }
@@ -1264,9 +1361,10 @@ function NuevoEstudio({ creado, cancelar }) {
             <div className="grid gap-2 mt-1">
               {[['descriptiva', 'Análisis Descriptivo Cuantitativo', 'Escala continua 0–10 para cada atributo.'],
                 ['rata', 'RATA', 'Marcar los descriptores presentes y su intensidad (bajo, medio, alto).'],
+                ['cata', 'CATA con aceptabilidad', 'Para consumidores: cuánto les gusta cada muestra y qué términos la describen. Con penalidades.'],
                 ['flash', 'Perfil Flash', 'Cada panelista crea sus descriptores y ordena todas las muestras juntas, de menos a más.'],
                 ['napping', 'Napping (mapeo proyectivo)', 'Cada panelista ubica las muestras en una hoja: parecidas cerca, distintas lejos. Con palabras opcionales.']].map(([k, t, d]) => (
-                <button key={k} type="button" onClick={() => setTecnica(k)}
+                <button key={k} type="button" onClick={() => { setTecnica(k); if (k === 'cata') setOrdenAzar(true); }}
                   className={`text-left rounded-xl border-2 p-3 ${tecnica === k ? 'border-purple-600 bg-purple-50' : 'border-gray-200 hover:border-purple-300'}`}>
                   <p className="font-bold text-gray-800 text-sm">{t}</p>
                   <p className="text-xs text-gray-500 mt-1">{d}</p>
@@ -1286,6 +1384,24 @@ function NuevoEstudio({ creado, cancelar }) {
               : <Campo label="Vinos por sesión"><input type="number" min="1" className={inp} value={porSesion} onChange={e => setPorSesion(e.target.value)} /></Campo>}
             <Campo label="Panelistas"><input type="number" min="1" className={inp} value={nPan} onChange={e => setNPan(e.target.value)} /></Campo>
           </div>
+          {esCata && (
+            <div className="space-y-3">
+              <div className="text-sm bg-sky-50 text-sky-900 rounded-lg p-3 space-y-1">
+                <p>Cada consumidor prueba las muestras <b>de a una</b>, en orden balanceado (Williams). Para cada una indica primero
+                  <b> cuánto le gusta</b> (escala hedónica de 9 puntos) y después marca <b>todos los términos</b> que la describen.</p>
+                <p>Lo habitual: una sola sesión con todas las muestras, 1 repetición, 10–40 términos simples (de un estudio previo o de la bibliografía)
+                  y al menos 50–100 consumidores. Conviene sortear el orden de los términos para cada consumidor.</p>
+              </div>
+              <label className="flex items-start gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={gusto} onChange={e => setGusto(e.target.checked)} className="w-4 h-4 mt-0.5" />
+                <span>Preguntar cuánto le gusta cada muestra (escala hedónica de 9 puntos). Necesario para el análisis de penalidades.</span>
+              </label>
+              <label className="flex items-start gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={conIdeal} onChange={e => setConIdeal(e.target.checked)} className="w-4 h-4 mt-0.5" />
+                <span>Al final, preguntar por el <b>vino ideal</b> (mismos términos, una sola vez). Permite ver qué le falta o le sobra a cada muestra (penalidades con ideal).</span>
+              </label>
+            </div>
+          )}
           {esFlash && (
             <div className="text-sm bg-amber-50 text-amber-900 rounded-lg p-3 space-y-1">
               <p>Cada panelista recibe <b>todas las copas juntas</b>, marcadas con <b>letras</b> (A, B, C…): son más fáciles de reportar
@@ -1365,7 +1481,7 @@ function NuevoEstudio({ creado, cancelar }) {
                 <textarea className={inp + ' h-32 text-sm font-mono'} value={sugTxt} onChange={e => setSugTxt(e.target.value)} placeholder={'# Aroma\nFrutos rojos\nVainilla\n# Boca\nAstringencia'} />
               </Campo>
             : <>
-          <Campo label={`${esRata ? 'Descriptores' : 'Atributos'} (${atributos.length})`}
+          <Campo label={`${esRata ? 'Descriptores' : esCata ? 'Términos' : 'Atributos'} (${atributos.length})`}
             ayuda={<>Uno por línea. Opcional: agrupá con títulos — <code># Aroma</code> para la modalidad y <code>## Cítricos</code> para una categoría.
               Si un descriptor se repite en distintos grupos (ej. Limón en Aroma y en Sabor) la columna se llama “Aroma: Limón”.</>}>
             <textarea className={inp + ' h-56 text-sm font-mono'} value={atrTxt} onChange={e => setAtrTxt(e.target.value)}
@@ -1381,7 +1497,7 @@ function NuevoEstudio({ creado, cancelar }) {
           )}
           <label className="flex items-start gap-2 text-sm text-gray-700">
             <input type="checkbox" checked={ordenAzar} onChange={e => setOrdenAzar(e.target.checked)} className="w-4 h-4 mt-0.5" />
-            <span>Orden de los {esRata ? 'descriptores' : 'atributos'} al azar para cada panelista (dentro de cada grupo; los títulos quedan en su lugar).
+            <span>Orden de los {palabraLista(tecnica)} al azar para cada panelista (dentro de cada grupo; los títulos quedan en su lugar).
               Reduce el sesgo por posición en la lista.</span>
           </label>
             </>}
@@ -1396,7 +1512,7 @@ function NuevoEstudio({ creado, cancelar }) {
             : <div>
                 <h2 className="text-lg font-bold text-gray-800 mb-1">Vista previa: {prev.sesiones.length} sesiones</h2>
                 <p className="text-sm text-gray-600 mb-3">
-                  <b>{nombreTecnica(tecnica)}</b> · {esNap ? `${HOJAS[hoja].nombre} · ${parcial ? 'parcial: ' + focos.join(', ') : 'global'} · ${palabras === 'no' ? 'sin palabras' : palabras === 'obligatorio' ? 'palabras obligatorias' : 'palabras opcionales'}` : esFlash ? 'descriptores propios de cada panelista' : `${atributos.length} ${esRata ? 'descriptores' : 'atributos'}`}{!juntas && desc.hayGrupos ? ` en ${desc.estructura.filter(i => i.t === 'g1').length || desc.estructura.filter(i => i.t === 'g2').length} grupos` : ''} ·{' '}
+                  <b>{nombreTecnica(tecnica)}</b> · {esNap ? `${HOJAS[hoja].nombre} · ${parcial ? 'parcial: ' + focos.join(', ') : 'global'} · ${palabras === 'no' ? 'sin palabras' : palabras === 'obligatorio' ? 'palabras obligatorias' : 'palabras opcionales'}` : esFlash ? 'descriptores propios de cada panelista' : `${atributos.length} ${palabraLista(tecnica)}${esCata ? (gusto ? ' · con agrado' : ' · sin agrado') + (conIdeal ? ' · con ideal' : '') : ''}`}{!juntas && desc.hayGrupos ? ` en ${desc.estructura.filter(i => i.t === 'g1').length || desc.estructura.filter(i => i.t === 'g2').length} grupos` : ''} ·{' '}
                   {prev.totalMuestras} muestras ({vinos.length}{juntas && duplicados.length ? ` + ${duplicados.length} duplicado${duplicados.length > 1 ? 's' : ''}` : ''} vinos × {reps} rep.) · {nPan} panelistas · {prev.diseno.length} evaluaciones en total
                 </p>
                 {!esFlash && !balanceado && (
@@ -1459,7 +1575,7 @@ function EstudioAdmin({ eid, volver }) {
       </div>
       {tab === 'progreso' && <Progreso eid={eid} est={est} />}
       {tab === 'servicio' && <Servicio est={est} priv={priv} />}
-      {tab === 'analisis' && (est.tecnica === 'flash' ? <AnalisisFlash eid={eid} est={est} priv={priv} /> : est.tecnica === 'napping' ? <AnalisisNapping eid={eid} est={est} priv={priv} /> : <Analisis eid={eid} est={est} priv={priv} />)}
+      {tab === 'analisis' && (est.tecnica === 'cata' ? <AnalisisCata eid={eid} est={est} priv={priv} /> : est.tecnica === 'flash' ? <AnalisisFlash eid={eid} est={est} priv={priv} /> : est.tecnica === 'napping' ? <AnalisisNapping eid={eid} est={est} priv={priv} /> : <Analisis eid={eid} est={est} priv={priv} />)}
       {tab === 'resultados' && (est.tecnica === 'flash' ? <ResultadosFlash eid={eid} est={est} priv={priv} /> : est.tecnica === 'napping' ? <ResultadosNapping eid={eid} est={est} priv={priv} /> : <Resultados eid={eid} est={est} priv={priv} />)}
       {tab === 'config' && <Configuracion eid={eid} est={est} recargar={recargar} borrado={volver} />}
     </div>
@@ -1560,8 +1676,10 @@ function filasResultados(est, priv, respuestas) {
   const info = {}; priv.filas.forEach(d => { info[`${d.Valuador}_${d.Sesion}_${d.Orden}`] = d; });
   return respuestas.map(r => {
     const d = info[`${r.Valuador}_${r.Sesion}_${r.Orden}`] || {};
+    const ideal = r.CodigoProducto === 'IDEAL';
     const o = { Estudio: est.nombre, Sesion: r.Sesion, Valuador: r.Valuador, Orden: r.Orden,
-      NombreProducto: d.NombreProducto || '', Rep: d.Rep || '', CodigoProducto: r.CodigoProducto, timestamp: r.ts || '' };
+      NombreProducto: ideal ? 'IDEAL' : d.NombreProducto || '', Rep: d.Rep || '', CodigoProducto: r.CodigoProducto, timestamp: r.ts || '' };
+    if (est.tecnica === 'cata') o[GUSTO] = ideal || !r.valores || r.valores[GUSTO] == null ? '' : r.valores[GUSTO];
     est.atributos.forEach(a => { o[a] = r.valores ? r.valores[a] : ''; });
     return o;
   }).sort((a, b) => ordenNatural(a.Sesion, b.Sesion) || ordenNatural(a.Valuador, b.Valuador) || a.Orden - b.Orden);
@@ -1713,6 +1831,226 @@ function Analisis({ eid, est, priv }) {
   );
 }
 
+// ---- CATA: agrado, frecuencias (Q de Cochran), mapa de correspondencias y penalidades
+function MapaCA({ ca, inv1, inv2, svgRef }) {
+  const W = 640, H = 520, m = 40;
+  const s1 = inv1 ? -1 : 1, s2 = inv2 ? -1 : 1;
+  const P = arr => arr.map(p => ({ ...p, x: p.x * s1, y: p.y * s2 }));
+  const fil = P(ca.filas), cols = P(ca.cols), sup = P(ca.sup);
+  const lim = Math.max(1e-9, ...[...fil, ...cols, ...sup].map(p => Math.max(Math.abs(p.x), Math.abs(p.y)))) * 1.15;
+  const X = x => W / 2 + (x / lim) * (W / 2 - m), Y = y => H / 2 - (y / lim) * (H / 2 - m);
+  return (
+    <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="w-full h-auto bg-white border rounded-lg" xmlns="http://www.w3.org/2000/svg" fontFamily="sans-serif">
+      <line x1={m} x2={W - m} y1={H / 2} y2={H / 2} stroke="#cbd5e1" strokeDasharray="4 4"/>
+      <line y1={m} y2={H - m} x1={W / 2} x2={W / 2} stroke="#cbd5e1" strokeDasharray="4 4"/>
+      <text x={W - 4} y={H / 2 + 16} textAnchor="end" fontSize="12" fill="#64748b">Dim 1 ({fmt(ca.pct[0], 1)}%)</text>
+      <text x={W / 2 + 6} y={14} fontSize="12" fill="#64748b">Dim 2 ({fmt(ca.pct[1], 1)}%)</text>
+      {cols.map(c => <text key={c.a} x={X(c.x)} y={Y(c.y)} fontSize="11" fill="#be185d" textAnchor="middle" dominantBaseline="middle">{c.a}</text>)}
+      {fil.map(p => (
+        <g key={p.v}><circle cx={X(p.x)} cy={Y(p.y)} r="5" fill="#4f46e5"/>
+          <text x={X(p.x) + 7} y={Y(p.y) - 7} fontSize="13" fontWeight="bold" fill="#1e1b4b">{p.v}</text></g>))}
+      {sup.map(p => (
+        <g key={p.v}><text x={X(p.x)} y={Y(p.y)} fontSize="20" fill="#d97706" textAnchor="middle" dominantBaseline="middle">★</text>
+          <text x={X(p.x) + 10} y={Y(p.y) - 8} fontSize="13" fontWeight="bold" fill="#b45309">{p.v}</text></g>))}
+    </svg>
+  );
+}
+
+// impacto de cada término en el agrado: x = % de citación, y = diferencia de agrado (con − sin)
+function MapaImpacto({ impacto, svgRef }) {
+  const W = 640, H = 380, m = 46;
+  const pts = impacto.filter(i => i.efecto != null);
+  if (!pts.length) return null;
+  const ymax = Math.max(0.5, ...pts.map(p => Math.abs(p.efecto))) * 1.15, xmax = Math.max(10, ...pts.map(p => p.pct)) * 1.1;
+  const X = x => m + (x / xmax) * (W - 2 * m), Y = y => H / 2 - (y / ymax) * (H / 2 - m / 2);
+  return (
+    <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="w-full h-auto bg-white border rounded-lg" xmlns="http://www.w3.org/2000/svg" fontFamily="sans-serif">
+      <line x1={m} x2={W - m} y1={Y(0)} y2={Y(0)} stroke="#94a3b8"/>
+      <line x1={m} x2={m} y1={m / 2} y2={H - m / 2} stroke="#cbd5e1"/>
+      <text x={W - m} y={H - 6} textAnchor="end" fontSize="12" fill="#64748b">% de evaluaciones en que se marcó →</text>
+      <text x={m + 4} y={m / 2 + 4} fontSize="12" fill="#15803d">↑ sube el agrado</text>
+      <text x={m + 4} y={H - m / 2 - 4} fontSize="12" fill="#b91c1c">↓ baja el agrado</text>
+      {pts.map(p => { const sig = p.p != null && p.p < 0.05; const col = !sig ? '#94a3b8' : p.efecto > 0 ? '#16a34a' : '#dc2626'; return (
+        <g key={p.t}><circle cx={X(p.pct)} cy={Y(p.efecto)} r={sig ? 5 : 3.5} fill={col}/>
+          <text x={X(p.pct) + 7} y={Y(p.efecto) + 4} fontSize="11" fill={sig ? '#0f172a' : '#64748b'} fontWeight={sig ? 'bold' : 'normal'}>{p.t}</text></g>); })}
+    </svg>
+  );
+}
+
+function AnalisisCata({ eid, est, priv }) {
+  const [resp, setResp] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const [sesion, setSesion] = useState('');
+  const [inv1, setInv1] = useState(false), [inv2, setInv2] = useState(false);
+  const svgCA = React.useRef(null), svgImp = React.useRef(null);
+  useEffect(() => datos.observarRespuestas(eid, setResp, e => setMsg({ t: 'error', m: textoError(e) })), [eid]);
+  const gusto = !(est.cata && est.cata.gusto === false);
+  const res = useMemo(() => {
+    if (!resp) return null;
+    const todas = filasResultados(est, priv, resp);
+    const filas = todas.filter(f => f.CodigoProducto !== 'IDEAL' && (!sesion || f.Sesion === sesion));
+    const ideales = {}; todas.filter(f => f.CodigoProducto === 'IDEAL').forEach(f => { ideales[f.Valuador] = f; });
+    return { ...analizarCata(filas, est.atributos, { gusto, ideales: Object.keys(ideales).length ? ideales : null }), consumidores: new Set(filas.map(f => f.Valuador)).size };
+  }, [resp, sesion]);
+  if (!res) return <div><Mensaje msg={msg}/><p className="text-gray-500">Cargando respuestas…</p></div>;
+  const bajar = (ref, suf) => {
+    const t = new XMLSerializer().serializeToString(ref.current);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'image/svg+xml' }));
+    a.download = est.nombre.replace(/[^\w\-]+/g, '_') + suf + '.svg'; a.click();
+  };
+  const orden = [...est.atributos].sort((a, b) => (res.q.porTermino[a].p ?? 2) - (res.q.porTermino[b].p ?? 2) || res.total[b] - res.total[a]);
+  const pctCel = (c, n) => (n ? c / n : 0);
+  const color = x => `rgba(14,165,233,${Math.min(1, x) * 0.85})`;
+  const bajarFrec = () => {
+    const filas = orden.map(t => ({ Termino: t, ...Object.fromEntries(res.vinos.map(v => [v, res.tabla[v][t]])),
+      ...(res.ideal ? { Ideal: res.ideal.frec[t] } : {}), Q: res.q.porTermino[t].Q ?? '', p: res.q.porTermino[t].p ?? '' }));
+    descargar(est.nombre.replace(/[^\w\-]+/g, '_') + '_frecuencias.csv', aCSV(filas, ['Termino', ...res.vinos, ...(res.ideal ? ['Ideal'] : []), 'Q', 'p'], ',', false));
+  };
+  const minN = res.vinos.length ? Math.min(...res.vinos.map(v => res.n[v])) : 0;
+  return (
+    <div className="space-y-8">
+      <Mensaje msg={msg}/>
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <span className="text-gray-700"><b>{res.N}</b> evaluaciones · <b>{res.consumidores}</b> consumidores · <b>{res.vinos.length}</b> vinos{res.ideal ? <> · <b>{res.ideal.n}</b> ideales</> : ''}</span>
+        <span className="text-xs text-emerald-600">● en vivo</span>
+        {est.sesiones.length > 1 && <select value={sesion} onChange={e => setSesion(e.target.value)} className="border-2 border-gray-200 rounded-lg px-2 py-1">
+          <option value="">Todas las sesiones</option>
+          {est.sesiones.map(s => <option key={s.Sesion} value={s.Sesion}>Sesión {s.Sesion}</option>)}
+        </select>}
+      </div>
+      {res.vinos.length > 0 && minN < 20 && (
+        <p className="text-sm bg-amber-50 text-amber-800 p-3 rounded-lg">Todavía hay pocos datos (algún vino tiene {minN} evaluación{minN === 1 ? '' : 'es'}). CATA necesita muchos consumidores: los resultados se estabilizan a partir de 50–100.</p>
+      )}
+
+      {res.agrado && (
+        <section>
+          <h3 className="font-bold text-gray-800 mb-2">Aceptabilidad (1 = me disgusta muchísimo · 9 = me gusta muchísimo)</h3>
+          <div className="overflow-auto border rounded-lg">
+            <table className="text-sm w-full">
+              <thead className="bg-gray-100"><tr><th className="p-2 text-left">Vino</th><th className="p-2">n</th><th className="p-2">Media</th><th className="p-2">DE</th>
+                <th className="p-2 text-left w-1/3"></th><th className="p-2">Le gusta (6–9)</th><th className="p-2">Le disgusta (1–4)</th></tr></thead>
+              <tbody>{[...res.agrado.vinos].sort((a, b) => (b.media ?? 0) - (a.media ?? 0)).map(a => (
+                <tr key={a.v} className="border-t">
+                  <td className="p-2 font-semibold">{a.v}</td><td className="p-2 text-center">{a.n}</td>
+                  <td className="p-2 text-center font-bold">{a.media == null ? '—' : fmt(a.media)}</td><td className="p-2 text-center">{a.sd == null ? '—' : fmt(a.sd)}</td>
+                  <td className="p-2"><div className="bg-gray-100 rounded h-3"><div className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded" style={{ width: ((a.media || 1) - 1) / 8 * 100 + '%' }}/></div></td>
+                  <td className="p-2 text-center">{a.n ? Math.round(100 * a.gustan / a.n) + '%' : '—'}</td><td className="p-2 text-center">{a.n ? Math.round(100 * a.disgustan / a.n) + '%' : '—'}</td>
+                </tr>))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">Diferencia entre vinos (ANOVA vino + consumidor): F = {res.agrado.F == null ? '—' : fmt(res.agrado.F)} · p = {fmtP(res.agrado.p)} <b>{estrellas(res.agrado.p)}</b>.
+            Orientativo; para comparaciones de a pares usá el CSV en R.</p>
+        </section>
+      )}
+
+      <section>
+        <div className="flex flex-wrap items-baseline gap-3 mb-2">
+          <h3 className="font-bold text-gray-800">Frecuencia de citación por vino</h3>
+          <button onClick={bajarFrec} className="text-xs underline text-purple-700">Descargar tabla (CSV)</button>
+        </div>
+        <div className="overflow-auto max-h-[560px] border rounded-lg">
+          <table className="text-xs">
+            <thead className="bg-gray-100 sticky top-0"><tr>
+              <th className="p-2 text-left sticky left-0 bg-gray-100">Término</th>
+              {res.vinos.map(v => <th key={v} className="p-2 text-center whitespace-nowrap">{v}<div className="font-normal text-gray-500">n={res.n[v]}</div></th>)}
+              {res.ideal && <th className="p-2 text-center text-amber-700">★ Ideal<div className="font-normal text-gray-500">n={res.ideal.n}</div></th>}
+              <th className="p-2 text-center">Q</th><th className="p-2 text-center">p</th>
+            </tr></thead>
+            <tbody>{orden.map(t => (
+              <tr key={t} className="border-t">
+                <td className="p-2 font-semibold whitespace-nowrap sticky left-0 bg-white">{t}</td>
+                {res.vinos.map(v => { const x = pctCel(res.tabla[v][t], res.n[v]); return (
+                  <td key={v} className="p-2 text-center whitespace-nowrap" style={{ background: color(x), color: x > 0.55 ? 'white' : undefined }}>{res.tabla[v][t]} <span className="opacity-75">({Math.round(100 * x)}%)</span></td>); })}
+                {res.ideal && <td className="p-2 text-center whitespace-nowrap bg-amber-50">{res.ideal.frec[t]} ({Math.round(100 * pctCel(res.ideal.frec[t], res.ideal.n))}%)</td>}
+                <td className="p-2 text-center">{res.q.porTermino[t].Q == null ? '—' : fmt(res.q.porTermino[t].Q)}</td>
+                <td className="p-2 text-center whitespace-nowrap">{fmtP(res.q.porTermino[t].p)} <b>{estrellas(res.q.porTermino[t].p)}</b></td>
+              </tr>))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">Q de Cochran por término (¿se marca más en unos vinos que en otros?), con {res.q.bloques} consumidor{res.q.bloques === 1 ? '' : 'es'} × repetición que evaluaron todos los vinos.
+          Ordenado de más a menos discriminante. *** p&lt;0,001 · ** p&lt;0,01 · * p&lt;0,05 · “·” p&lt;0,10.</p>
+      </section>
+
+      <section>
+        <h3 className="font-bold text-gray-800 mb-2">Mapa de los vinos y los términos (análisis de correspondencias)</h3>
+        {res.ca ? (
+          <div className="grid xl:grid-cols-3 gap-4">
+            <div className="xl:col-span-2">
+              <MapaCA ca={res.ca} inv1={inv1} inv2={inv2} svgRef={svgCA}/>
+              <div className="flex flex-wrap gap-4 items-center text-xs text-gray-600 mt-2">
+                <label className="flex items-center gap-1"><input type="checkbox" checked={inv1} onChange={e => setInv1(e.target.checked)}/> Invertir Dim 1</label>
+                <label className="flex items-center gap-1"><input type="checkbox" checked={inv2} onChange={e => setInv2(e.target.checked)}/> Invertir Dim 2</label>
+                <button onClick={() => bajar(svgCA, '_CA')} className="underline text-purple-700">Descargar gráfico (SVG)</button>
+              </div>
+            </div>
+            <div className="text-xs text-gray-600 space-y-2">
+              <p>Los vinos cerca de un término son los que más se describieron con él. Como <code>FactoMineR::CA</code> sobre la tabla de frecuencias (mapa simétrico).
+                {res.ideal && <> La ★ es el vino ideal, proyectado como fila suplementaria: los vinos más cerca son los más parecidos a lo que buscan los consumidores.</>}</p>
+              <p>Prueba χ² de independencia: χ² = {fmt(res.ca.chi2, 1)}, gl = {res.ca.gl}, p = {fmtP(res.ca.p)} <b>{estrellas(res.ca.p)}</b>.</p>
+              {res.ca.fuera.length > 0 && <p>No entran (nunca marcados): {res.ca.fuera.join(', ')}</p>}
+            </div>
+          </div>
+        ) : <p className="text-gray-500 border-2 border-dashed rounded-xl p-8 text-center">Se necesitan al menos 3 vinos con términos marcados.</p>}
+      </section>
+
+      {res.impacto && (
+        <section>
+          <h3 className="font-bold text-gray-800 mb-2">¿Qué términos suben o bajan el agrado? (análisis de penalidades)</h3>
+          <div className="grid xl:grid-cols-2 gap-4">
+            <div>
+              <MapaImpacto impacto={res.impacto} svgRef={svgImp}/>
+              <button onClick={() => bajar(svgImp, '_penalidades')} className="text-xs underline text-purple-700 mt-2">Descargar gráfico (SVG)</button>
+            </div>
+            <div className="overflow-auto max-h-[420px] border rounded-lg">
+              <table className="text-xs w-full">
+                <thead className="bg-gray-100 sticky top-0"><tr><th className="p-2 text-left">Término</th><th className="p-2">% marcado</th><th className="p-2">Agrado con</th><th className="p-2">sin</th><th className="p-2">Diferencia</th><th className="p-2">p</th></tr></thead>
+                <tbody>{[...res.impacto].sort((a, b) => (b.efecto ?? -99) - (a.efecto ?? -99)).map(i => { const sig = i.p != null && i.p < 0.05; return (
+                  <tr key={i.t} className={`border-t ${sig ? (i.efecto > 0 ? 'bg-green-50' : 'bg-red-50') : ''}`}>
+                    <td className="p-2 font-semibold">{i.t}</td><td className="p-2 text-center">{Math.round(i.pct)}%</td>
+                    <td className="p-2 text-center">{i.con == null ? '—' : fmt(i.con)}</td><td className="p-2 text-center">{i.sin == null ? '—' : fmt(i.sin)}</td>
+                    <td className={`p-2 text-center font-bold ${sig ? (i.efecto > 0 ? 'text-green-700' : 'text-red-700') : ''}`}>{i.efecto == null ? '—' : (i.efecto > 0 ? '+' : '') + fmt(i.efecto)}</td>
+                    <td className="p-2 text-center whitespace-nowrap">{fmtP(i.p)} <b>{estrellas(i.p)}</b></td>
+                  </tr>); })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">Diferencia = agrado medio de las evaluaciones en que se marcó el término menos el de las que no (todas las muestras juntas); p de la prueba t de Welch.
+            En verde, términos asociados a más agrado (impulsores); en rojo, a menos (defectos). Los que se marcan poco pesan poco aunque la diferencia sea grande.</p>
+        </section>
+      )}
+
+      {res.penal && (
+        <section>
+          <h3 className="font-bold text-gray-800 mb-2">Penalidades respecto del ideal: qué le falta o le sobra a los vinos</h3>
+          <div className="overflow-auto max-h-[480px] border rounded-lg">
+            <table className="text-xs w-full">
+              <thead className="bg-gray-100 sticky top-0">
+                <tr><th className="p-2 text-left" rowSpan="2">Término</th><th className="p-2 text-center border-l" colSpan="3">Falta (está en el ideal, no en el vino)</th><th className="p-2 text-center border-l" colSpan="3">Sobra (está en el vino, no en el ideal)</th><th className="p-2 border-l" rowSpan="2">Conclusión</th></tr>
+                <tr><th className="p-2 border-l">% eval.</th><th className="p-2">Caída</th><th className="p-2">p</th><th className="p-2 border-l">% eval.</th><th className="p-2">Caída</th><th className="p-2">p</th></tr>
+              </thead>
+              <tbody>{[...res.penal].sort((a, b) => Math.max(b.falta.caida ?? -9, b.sobra.caida ?? -9) - Math.max(a.falta.caida ?? -9, a.sobra.caida ?? -9)).map(r => {
+                const pesa = x => x.pct >= 20 && x.p != null && x.p < 0.05 && x.caida > 0;
+                const conc = [pesa(r.falta) && 'Debe estar: su falta penaliza', pesa(r.sobra) && 'No debe estar: penaliza'].filter(Boolean).join(' · ');
+                const cel = x => <><td className="p-2 text-center border-l">{Math.round(x.pct)}%</td><td className={`p-2 text-center ${pesa(x) ? 'font-bold text-red-700' : ''}`}>{x.caida == null ? '—' : fmt(x.caida)}</td><td className="p-2 text-center whitespace-nowrap">{fmtP(x.p)} <b>{estrellas(x.p)}</b></td></>;
+                return (
+                  <tr key={r.t} className={`border-t ${conc ? 'bg-red-50' : ''}`}>
+                    <td className="p-2 font-semibold">{r.t}</td>{cel(r.falta)}{cel(r.sobra)}<td className="p-2 border-l font-semibold text-red-700">{conc}</td>
+                  </tr>); })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">Como Ares et al. (2014): para cada término se compara el agrado cuando el vino coincide con el ideal y cuando no. “Caída” = cuántos puntos baja el agrado
+            cuando falta (o sobra) el término; % eval. = en qué proporción de las evaluaciones pasa eso. Se destacan los que pasan en al menos el 20% de las evaluaciones con caída significativa (p &lt; 0,05):
+            son las primeras pistas para reformular.</p>
+        </section>
+      )}
+    </div>
+  );
+}
+
 function Resultados({ eid, est, priv }) {
   const [filas, setFilas] = useState(null);
   const [msg, setMsg] = useState(null);
@@ -1722,15 +2060,17 @@ function Resultados({ eid, est, priv }) {
     catch (e) { setMsg({ t: 'error', m: textoError(e) }); }
   };
   useEffect(() => { cargar(); }, [eid]);
-  const cols = ['Estudio', 'Sesion', 'Valuador', 'Orden', 'NombreProducto', 'Rep', 'CodigoProducto', 'timestamp', ...est.atributos];
+  const conGusto = est.tecnica === 'cata' && !(est.cata && est.cata.gusto === false);
+  const cols = ['Estudio', 'Sesion', 'Valuador', 'Orden', 'NombreProducto', 'Rep', 'CodigoProducto', 'timestamp', ...(conGusto ? [GUSTO] : []), ...est.atributos];
   const base = est.nombre.replace(/[^\w\-]+/g, '_');
   const esperadas = priv.filas.length;
+  const nIdeal = filas ? filas.filter(f => f.CodigoProducto === 'IDEAL').length : 0;
   return (
     <div>
       <Mensaje msg={msg}/>
       {!filas ? <p className="text-gray-500">Cargando…</p> : (
         <div>
-          <p className="text-gray-700 mb-4"><b>{filas.length}</b> respuestas de <b>{esperadas}</b> esperadas.</p>
+          <p className="text-gray-700 mb-4"><b>{filas.length - nIdeal}</b> respuestas de <b>{esperadas}</b> esperadas{nIdeal ? <> · <b>{nIdeal}</b> vinos ideales</> : ''}.</p>
           <div className="flex flex-wrap gap-3 mb-5">
             <button onClick={() => descargar(`${base}_respuestas.csv`, aCSV(filas, cols, ',', false))} disabled={!filas.length}
               className={btn + ' bg-emerald-600 hover:bg-emerald-700 text-white'}>Descargar CSV (para R)</button>
@@ -1739,7 +2079,9 @@ function Resultados({ eid, est, priv }) {
             <button onClick={cargar} className={btn + ' bg-gray-100 hover:bg-gray-200'}>Actualizar</button>
           </div>
           <p className="text-xs text-gray-500 mb-2">“Para R”: separador coma y punto decimal (read.csv). “Para Excel”: separador punto y coma y coma decimal.
-            {est.tecnica === 'rata' && <> En RATA cada descriptor vale 0 si no fue marcado y 1–{est.escala || 3} según la intensidad elegida.</>}</p>
+            {est.tecnica === 'rata' && <> En RATA cada descriptor vale 0 si no fue marcado y 1–{est.escala || 3} según la intensidad elegida.</>}
+            {est.tecnica === 'cata' && <> En CATA cada término vale 1 si fue marcado y 0 si no{conGusto ? <>; {GUSTO} va de 1 (me disgusta muchísimo) a 9 (me gusta muchísimo)</> : ''}.
+              Las filas con NombreProducto = IDEAL son el vino ideal de cada consumidor (Orden 100).</>}</p>
           {filas.length > 0 && (
             <div className="overflow-auto max-h-[50vh] border rounded-lg">
               <table className="text-xs">

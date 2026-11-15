@@ -3,7 +3,7 @@
 App web gratuita para análisis sensorial (antes "panel").
 
 App web para análisis sensorial con **varios estudios a la vez**, sesiones, repeticiones y diseño de Williams.
-Técnicas: **Análisis Descriptivo Cuantitativo** (escala 0–10), **RATA** (Rate-All-That-Apply), **Perfil Flash** y **Napping** (mapeo proyectivo).
+Técnicas: **Análisis Descriptivo Cuantitativo** (escala 0–10), **RATA** (Rate-All-That-Apply), **Perfil Flash**, **Napping** (mapeo proyectivo) y **CATA con aceptabilidad** (consumidores).
 Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pages.
 
 - **Panelistas:** https://anibalacatania.github.io/libresense/
@@ -25,6 +25,12 @@ Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pa
    - Opción: orden de los descriptores al azar por panelista (dentro de cada grupo) para reducir el sesgo por posición.
    - **RATA:** el panelista marca los descriptores presentes y elige la intensidad (bajo/medio/alto, o escala de 5).
      En resultados: 0 = no marcado, 1–3 (o 1–5) = intensidad. No se puede enviar un descriptor marcado sin intensidad.
+   - **CATA con aceptabilidad** (consumidores; Ares y Jaeger en el mismo libro): muestras de a una en orden Williams,
+     primero escala hedónica de 9 puntos (opcional) y después todos los términos que describen la muestra (orden de términos
+     al azar por consumidor). Opcional: **vino ideal** al final, una sola vez (se guarda con Orden 100 y código IDEAL).
+     Análisis en vivo: aceptabilidad (medias, % que gusta/disgusta, ANOVA vino + consumidor), frecuencias con Q de Cochran,
+     análisis de correspondencias (como `FactoMineR::CA`, con el ideal como fila suplementaria), impacto de cada término en el
+     agrado (t de Welch) y penalidades respecto del ideal (Ares et al., 2014: qué falta y qué sobra). Validado contra R.
    - **Napping / mapeo proyectivo** (según Dehlholm, cap. 9 del mismo libro): todas las muestras en la sesión, con códigos
      de 3 cifras y orden de cata balanceado (Williams); duplicados ocultos opcionales. El panelista prueba de a una y
      **arrastra** cada muestra a una hoja (rectangular 60 × 40 cm, cuadrada 60 × 60 o redonda): cerca = parecidas.

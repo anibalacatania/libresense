@@ -87,6 +87,19 @@ export function guardarRespuesta(eid, { Sesion, Valuador, Orden, CodigoProducto,
   return b.commit().finally(() => { pendientes--; avisar(); });
 }
 
+// CATA: el producto ideal del consumidor (una vez). Se guarda como una respuesta más con Orden 100 y
+// código IDEAL; en el progreso se anota aparte (_ideal) para no contar como muestra de la sesión.
+export const ORDEN_IDEAL = 100;
+export function guardarIdeal(eid, { Sesion, Valuador, valores }) {
+  const b = writeBatch(db);
+  b.set(ses(eid, 'respuestas', `${Valuador}_${Sesion}_${ORDEN_IDEAL}`), {
+    Sesion, Valuador, Orden: ORDEN_IDEAL, CodigoProducto: 'IDEAL', valores, ts: serverTimestamp(), tsCliente: new Date().toISOString(),
+  });
+  b.set(ses(eid, 'progreso', Valuador), { _ideal: arrayUnion(Sesion) }, { merge: true });
+  pendientes++; avisar();
+  return b.commit().finally(() => { pendientes--; avisar(); });
+}
+
 // Perfil Flash: se guarda la sesión completa de una vez (todas las muestras con el rango de cada
 // descriptor propio del panelista). def = cómo evalúa cada descriptor (opcional).
 export function guardarFlash(eid, { Sesion, Valuador, muestras, atributos, def }) {
@@ -168,7 +181,7 @@ function limpiarEstudio(d) {
   return {
     nombre: d.nombre || 'Estudio', tecnica: d.tecnica || 'descriptiva', activo: !!d.activo,
     atributos: d.atributos || [], sesiones: d.sesiones || [], panelistas: d.panelistas || [],
-    estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, reinicio: d.reinicio || 0, dueno: d.dueno || '',
+    estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, reinicio: d.reinicio || 0, dueno: d.dueno || '',
     creado: d.creado && d.creado.toDate ? d.creado.toDate().toISOString() : null,
   };
 }
@@ -190,7 +203,7 @@ function docsDiseno(est) {
   return {
     estudio: {
       nombre: est.nombre, tecnica: est.tecnica || 'descriptiva', atributos: est.atributos,
-      estructura: est.estructura || null, escala: est.escala || 3, ordenAzar: !!est.ordenAzar, sugerencias: est.sugerencias || [], napping: est.napping || null,
+      estructura: est.estructura || null, escala: est.escala || 3, ordenAzar: !!est.ordenAzar, sugerencias: est.sugerencias || [], napping: est.napping || null, cata: est.cata || null,
       sesiones: est.sesiones.map(s => ({ Sesion: s.Sesion, NMuestras: s.NMuestras })),
       panelistas: est.panelistas,
     },

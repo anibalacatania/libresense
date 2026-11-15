@@ -2,7 +2,7 @@
 // ANOVA orientativa (vino + panelista) y PCA estandarizado (como FactoMineR::PCA con scale.unit = TRUE).
 
 // ---------------------------------------------------------------- estadística básica
-function lgamma(x) {
+export function lgamma(x) {
   const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
   let y = x, t = x + 5.5; t -= (x + 0.5) * Math.log(t);
   let s = 1.000000000190015; for (const ci of c) s += ci / ++y;
@@ -33,7 +33,7 @@ export function pF(F, d1, d2) { // P(F > f)
 }
 
 // Jacobi: autovalores/autovectores de una matriz simétrica chica
-function jacobi(A0) {
+export function jacobi(A0) {
   const n = A0.length, A = A0.map(r => [...r]);
   const V = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
   for (let barrido = 0; barrido < 100; barrido++) {

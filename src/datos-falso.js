@@ -23,7 +23,7 @@ export async function iniciar() { await dormir(5); }
 
 const limpiar = (id, d) => ({ id, nombre: d.nombre, tecnica: d.tecnica || 'descriptiva', activo: !!d.activo,
   atributos: d.atributos || [], sesiones: d.sesiones || [], panelistas: d.panelistas || [], creado: d.creado || null,
-  estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, reinicio: d.reinicio || 0, dueno: d.dueno || '' });
+  estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, reinicio: d.reinicio || 0, dueno: d.dueno || '' });
 
 export async function estudiosActivos() {
   await dormir(st.latencia);
@@ -58,6 +58,20 @@ export function guardarRespuesta(eid, r) {
   })().finally(() => { pendientes--; avisar(); notificar(); });
 }
 
+export const ORDEN_IDEAL = 100;
+export function guardarIdeal(eid, { Sesion, Valuador, valores }) {
+  pendientes++; avisar();
+  return (async () => {
+    await dormir(st.latencia);
+    const est = g(`estudios/${eid}`);
+    if (!est || !est.activo) denegar();
+    s(`estudios/${eid}/respuestas/${Valuador}_${Sesion}_${ORDEN_IDEAL}`, { Sesion, Valuador, Orden: ORDEN_IDEAL, CodigoProducto: 'IDEAL', valores, ts: new Date().toISOString() });
+    const p = g(`estudios/${eid}/progreso/${Valuador}`) || {};
+    p._ideal = [...new Set([...(p._ideal || []), Sesion])];
+    s(`estudios/${eid}/progreso/${Valuador}`, p);
+  })().finally(() => { pendientes--; avisar(); notificar(); });
+}
+
 let oyUsuario = null;
 export function observarUsuario(cb) { oyUsuario = cb; setTimeout(() => cb(st.usuario), 0); return () => { oyUsuario = null; }; }
 export async function entrarConGoogle() { st.usuario = st.proximoUsuario || { email: 'admin@prueba.test' }; persistir(); oyUsuario && oyUsuario(st.usuario); }
@@ -85,7 +99,7 @@ let n = 0;
 export async function crearEstudio(est) {
   if (!esAdmin()) denegar();
   const id = 'est' + (++n) + '_' + Date.now().toString(36);
-  s(`estudios/${id}`, { nombre: est.nombre, tecnica: est.tecnica || 'descriptiva', activo: true, atributos: est.atributos, estructura: est.estructura || null, escala: est.escala || 3, ordenAzar: !!est.ordenAzar, sugerencias: est.sugerencias || [], napping: est.napping || null,
+  s(`estudios/${id}`, { nombre: est.nombre, tecnica: est.tecnica || 'descriptiva', activo: true, atributos: est.atributos, estructura: est.estructura || null, escala: est.escala || 3, ordenAzar: !!est.ordenAzar, sugerencias: est.sugerencias || [], napping: est.napping || null, cata: est.cata || null,
     sesiones: est.sesiones.map(x => ({ Sesion: x.Sesion, NMuestras: x.NMuestras })), panelistas: est.panelistas, creado: new Date().toISOString(), dueno: st.usuario.email });
   s(`estudios/${id}/publico/diseno`, { filas: est.diseno.map(d => `${d.Sesion}|${d.Valuador}|${d.Orden}|${d.CodigoProducto}`) });
   s(`estudios/${id}/privado/diseno`, { filas: est.diseno.map(d => `${d.Sesion}|${d.Valuador}|${d.Orden}|${d.CodigoProducto}|${d.NombreProducto}|${d.Rep}`),
