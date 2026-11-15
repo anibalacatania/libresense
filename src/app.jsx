@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as datos from 'datos';
-import { ordenNatural, tamaniosSesiones, generarDiseno, generarDisenoFlash, LETRAS } from './diseno.js';
+import { ordenNatural, tamaniosSesiones, generarDiseno, generarDisenoFlash, generarDisenoFijo, LETRAS } from './diseno.js';
 import { GUSTO, HEDONICA, analizarCata } from './cata.js';
 import { hojasSorting, coocurrencias, mdsSorting, palabrasSorting, palabrasEnMapa, grupos as gruposSorting } from './sorting.js';
 import { TECNICAS, nombreTecnica, palabraLista, etiquetasRata, parsearDescriptores, bloquesDe, rangosDesdePosiciones, HOJAS, claveX, claveY } from './tecnicas.js';
@@ -382,7 +382,7 @@ function PanelApp() {
           <AvisoCerrado/>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg p-4 shadow-lg">
-              <p className="text-gray-800 font-semibold text-sm mb-1">Código de Muestra</p>
+              <p className="text-gray-800 font-semibold text-sm mb-1">{estudio.ordenFijo ? 'Muestra' : 'Código de Muestra'}</p>
               <p className="text-gray-900 text-4xl font-bold">{f.CodigoProducto}</p>
             </div>
             <div className="bg-white/20 rounded-lg p-4 border-2 border-white/40">
@@ -1493,8 +1493,10 @@ function NuevoEstudio({ creado, cancelar }) {
   const [palabras, setPalabras] = useState(F.palabras ?? 'opcional');
   const [gusto, setGusto] = useState(F.gusto ?? true);
   const [conIdeal, setConIdeal] = useState(F.conIdeal ?? false);
-  useEffect(() => { LS.set('pf_form', { nombre, vinosTxt, porSesion, reps, nPan, parejo, semilla, atrTxt, tecnica, escala, ordenAzar, sugTxt, hoja, parcial, focosTxt, palabras, gusto, conIdeal }); },
-    [nombre, vinosTxt, porSesion, reps, nPan, parejo, semilla, atrTxt, tecnica, escala, ordenAzar, sugTxt, hoja, parcial, focosTxt, palabras, gusto, conIdeal]);
+  const [fijo, setFijo] = useState(F.fijo ?? false);
+  const [prefijo, setPrefijo] = useState(F.prefijo ?? 'Vino');
+  useEffect(() => { LS.set('pf_form', { nombre, vinosTxt, porSesion, reps, nPan, parejo, semilla, atrTxt, tecnica, escala, ordenAzar, sugTxt, hoja, parcial, focosTxt, palabras, gusto, conIdeal, fijo, prefijo }); },
+    [nombre, vinosTxt, porSesion, reps, nPan, parejo, semilla, atrTxt, tecnica, escala, ordenAzar, sugTxt, hoja, parcial, focosTxt, palabras, gusto, conIdeal, fijo, prefijo]);
   const [prev, setPrev] = useState(null);
   const [msg, setMsg] = useState(null);
   const [ocupado, setOcupado] = useState(false);
@@ -1514,6 +1516,8 @@ function NuevoEstudio({ creado, cancelar }) {
   const dupMalos = duplicados.filter(d => !vinos.includes(d));
   const porSesionEf = esFlash ? Math.max(1, vinos.length) : esNap || esSort ? Math.max(1, vinos.length + duplicados.length) : Number(porSesion);
   const dup = vinos.filter((v, i) => vinos.indexOf(v) !== i);
+  const conFijo = fijo && !juntas;   // orden fijo y "Vino 1, Vino 2…" (solo ADC, RATA y CATA)
+  const pref = prefijo.replace(/[|]/g, '').replace(/\s+/g, ' ').trim() || 'Vino';
 
   const generar = () => {
     setMsg(null);
@@ -1534,12 +1538,15 @@ function NuevoEstudio({ creado, cancelar }) {
     if (esCata && atributos.some(a => a.toLowerCase() === GUSTO.toLowerCase())) return setMsg({ t: 'error', m: `“${GUSTO}” está reservado para la escala de agrado: usá otro nombre de término.` });
     if (atributos.length > 300) return setMsg({ t: 'error', m: 'Máximo 300 descriptores por estudio.' });
     if (!juntas && Number(porSesion) > vinos.length) return setMsg({ t: 'error', m: `No puede haber más vinos por sesión (${porSesion}) que vinos distintos (${vinos.length}): un vino no se repite dentro de una sesión.` });
+    if (conFijo && `${pref} ${vinos.length}`.length > 10) return setMsg({ t: 'error', m: `El nombre de las muestras es demasiado largo: “${pref} ${vinos.length}” (máximo 10 caracteres). Usá un prefijo más corto.` });
     if (vinos.length * reps > 900) return setMsg({ t: 'error', m: 'Demasiadas muestras para códigos de 3 dígitos (máx. 900 vinos × repeticiones).' });
     setPrev(esFlash
       ? generarDisenoFlash({ vinos, reps: Number(reps), duplicados, nPanelistas: Number(nPan), semilla: Number(semilla) })
       : esNap || esSort
       // Napping y Sorting: todas las muestras en la sesión, orden de cata balanceado (Williams), códigos de 3 cifras; duplicados como muestras aparte
       ? generarDiseno({ vinos: [...vinos, ...duplicados.map(d => `${d} (dup)`)], porSesion: porSesionEf, reps: Number(reps), nPanelistas: Number(nPan), parejo: false, semilla: Number(semilla) })
+      : conFijo
+      ? generarDisenoFijo({ vinos, porSesion: porSesionEf, reps: Number(reps), nPanelistas: Number(nPan), parejo, prefijo: pref })
       : generarDiseno({ vinos, porSesion: porSesionEf, reps: Number(reps), nPanelistas: Number(nPan), parejo, semilla: Number(semilla) }));
   };
 
@@ -1553,13 +1560,14 @@ function NuevoEstudio({ creado, cancelar }) {
         sugerencias: esFlash || ((esNap || esSort) && palabras !== 'no') ? sugerencias : [],
         napping: esNap ? { hoja, tareas, palabras } : null,
         sorting: esSort ? { palabras } : null,
+        ordenFijo: conFijo,
         cata: esCata ? { gusto, ideal: conIdeal } : null,
         sesiones: prev.sesiones.map(s => ({ Sesion: s.Sesion, NMuestras: s.NMuestras, Vinos: s.Vinos })),
         panelistas: Array.from({ length: Number(nPan) }, (_, i) => 'V' + (i + 1)),
         diseno: prev.diseno,
         parametros: { vinos, duplicados: juntas ? duplicados : [], reps: Number(reps), porSesion: porSesionEf, nPanelistas: Number(nPan), parejo, semilla: Number(semilla) },
       });
-      LS.set('pf_form', { atrTxt, porSesion, reps, nPan, parejo, tecnica, escala, ordenAzar, sugTxt, hoja, parcial, focosTxt, palabras, gusto, conIdeal });
+      LS.set('pf_form', { atrTxt, porSesion, reps, nPan, parejo, tecnica, escala, ordenAzar, sugTxt, hoja, parcial, focosTxt, palabras, gusto, conIdeal, fijo, prefijo });
       creado(id);
     } catch (e) { setMsg({ t: 'error', m: textoError(e) }); }
     finally { setOcupado(false); }
@@ -1699,9 +1707,26 @@ function NuevoEstudio({ creado, cancelar }) {
             <input type="checkbox" checked={parejo} onChange={e => setParejo(e.target.checked)} className="w-4 h-4" />
             Repartir parejo entre sesiones (ej. 24 muestras de a 7 → 6+6+6+6 en vez de 7+7+7+3)
           </label>}
-          <Campo label="Semilla" ayuda={esFlash ? 'Con la misma semilla y los mismos datos se obtiene el mismo sorteo de letras.' : 'Con la misma semilla y los mismos datos se obtiene exactamente el mismo diseño.'}>
+          {!juntas && (
+            <div className={`rounded-lg p-3 ${fijo ? 'bg-amber-50 border border-amber-200' : ''}`}>
+              <label className="flex items-start gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={fijo} onChange={e => setFijo(e.target.checked)} className="w-4 h-4 mt-0.5" />
+                <span><b>Mismo orden para todos, sin códigos</b> (uso didáctico): sin diseño de Williams; todos prueban los vinos en el orden de la lista
+                  y los ven como “{pref} 1”, “{pref} 2”… La app pasa de uno al siguiente al enviar.</span>
+              </label>
+              {fijo && (
+                <div className="mt-2 ml-6 space-y-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-700">Nombre de las muestras
+                    <input className="border-2 border-gray-200 rounded-lg px-2 py-1 w-28" value={prefijo} maxLength={7} onChange={e => setPrefijo(e.target.value)} />
+                    <span className="text-gray-500">→ {pref} 1, {pref} 2…</span></label>
+                  <p className="text-xs text-amber-800">Sin orden balanceado ni códigos ciegos, los resultados pueden tener efectos de orden y de expectativa:
+                    sirve para enseñar la técnica o para practicar, no para conclusiones sobre los vinos.</p>
+                </div>)}
+            </div>
+          )}
+          {!conFijo && <Campo label="Semilla" ayuda={esFlash ? 'Con la misma semilla y los mismos datos se obtiene el mismo sorteo de letras.' : 'Con la misma semilla y los mismos datos se obtiene exactamente el mismo diseño.'}>
             <input type="number" className={inp} value={semilla} onChange={e => setSemilla(e.target.value)} />
-          </Campo>
+          </Campo>}
           {esNap || esSort
             ? (palabras !== 'no' && <Campo label={`Lista de ayuda para las palabras (opcional) · ${nIdeas} términos`}
                 ayuda={<>El panelista la puede desplegar y tocar los términos que le sirvan. Uno por línea; se pueden agrupar con <code># Aroma</code>…
@@ -1759,13 +1784,13 @@ function NuevoEstudio({ creado, cancelar }) {
                 <div className="overflow-auto max-h-[420px] border rounded-lg">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-100 sticky top-0"><tr>
-                      <th className="p-2 text-left">Sesión</th><th className="p-2 text-left">N</th><th className="p-2 text-left">{esFlash ? 'Copas (letra: vino)' : 'Vinos (repetición, código)'}</th>
+                      <th className="p-2 text-left">Sesión</th><th className="p-2 text-left">N</th><th className="p-2 text-left">{esFlash ? 'Copas (letra: vino)' : conFijo ? 'Orden de servicio (igual para todos)' : 'Vinos (repetición, código)'}</th>
                     </tr></thead>
                     <tbody>{prev.sesiones.map(s => (
                       <tr key={s.Sesion} className="border-t align-top">
                         <td className="p-2 font-bold">{s.Sesion}</td><td className="p-2">{s.NMuestras}</td>
-                        <td className="p-2">{s.muestras.map(m => esFlash
-                          ? <span key={m.vino} className="inline-block bg-amber-50 border border-amber-200 rounded px-2 py-0.5 mr-1 mb-1"><b className="text-amber-700">{m.codigo}</b>: {m.vino}</span>
+                        <td className="p-2">{s.muestras.map(m => esFlash || conFijo
+                          ? <span key={m.vino} className="inline-block bg-amber-50 border border-amber-200 rounded px-2 py-0.5 mr-1 mb-1"><b className="text-amber-700">{m.codigo}</b>: {m.vino}{conFijo && Number(reps) > 1 ? <span className="text-gray-500"> r{m.rep}</span> : ''}</span>
                           : <span key={m.vino} className="inline-block bg-gray-100 rounded px-2 py-0.5 mr-1 mb-1">{m.vino} <span className="text-gray-500">r{m.rep}</span> <b>{m.codigo}</b></span>)}</td>
                       </tr>))}
                     </tbody>
@@ -1800,6 +1825,7 @@ function EstudioAdmin({ eid, volver }) {
         <button onClick={volver} className="text-sm text-purple-700 hover:underline">← Estudios</button>
         <h2 className="text-xl font-bold text-gray-800">{est.nombre}</h2>
         <span className={`text-xs font-bold px-2 py-1 rounded-full ${(TECNICAS[est.tecnica] || TECNICAS.descriptiva).color}`}>{nombreTecnica(est.tecnica)}</span>
+        {est.ordenFijo && <span className="text-xs font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-800" title="Sin Williams ni códigos: todos prueban en el mismo orden">Orden fijo (didáctico)</span>}
         <span className={`text-xs font-bold px-2 py-1 rounded-full ${est.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'}`}>{est.activo ? 'Activo' : 'Cerrado'}</span>
       </div>
       <div className="flex gap-2 border-b mb-5 no-print overflow-x-auto">
@@ -1884,10 +1910,10 @@ function Servicio({ est, priv }) {
             </div>)))}</div>
         </div>
       ) : (<>
-      <h3 className="font-semibold mt-4 mb-2">Orden de servicio (vino → código)</h3>
+      <h3 className="font-semibold mt-4 mb-2">{est.ordenFijo ? 'Orden de servicio (igual para todos los panelistas)' : 'Orden de servicio (vino → código)'}</h3>
       <table className="text-sm border mb-6">
         <thead className="bg-gray-100"><tr><th className="p-2 border">Vino</th><th className="p-2 border">Repetición</th><th className="p-2 border">Código</th></tr></thead>
-        <tbody>{Object.keys(clave).sort(ordenNatural).map(v => (
+        <tbody>{Object.keys(clave).sort((a, b) => est.ordenFijo ? ordenNatural(clave[a].codigo, clave[b].codigo) : ordenNatural(a, b)).map(v => (
           <tr key={v}><td className="p-2 border">{v}</td><td className="p-2 border text-center">{clave[v].rep}</td><td className="p-2 border text-center font-bold text-lg">{clave[v].codigo}</td></tr>))}
         </tbody>
       </table>

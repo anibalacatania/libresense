@@ -183,7 +183,7 @@ function limpiarEstudio(d) {
   return {
     nombre: d.nombre || 'Estudio', tecnica: d.tecnica || 'descriptiva', activo: !!d.activo,
     atributos: d.atributos || [], sesiones: d.sesiones || [], panelistas: d.panelistas || [],
-    estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, sorting: d.sorting || null, reinicio: d.reinicio || 0, dueno: d.dueno || '',
+    estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, sorting: d.sorting || null, ordenFijo: !!d.ordenFijo, reinicio: d.reinicio || 0, dueno: d.dueno || '',
     creado: d.creado && d.creado.toDate ? d.creado.toDate().toISOString() : null,
   };
 }
@@ -205,7 +205,7 @@ function docsDiseno(est) {
   return {
     estudio: {
       nombre: est.nombre, tecnica: est.tecnica || 'descriptiva', atributos: est.atributos,
-      estructura: est.estructura || null, escala: est.escala || 3, ordenAzar: !!est.ordenAzar, sugerencias: est.sugerencias || [], napping: est.napping || null, cata: est.cata || null, sorting: est.sorting || null,
+      estructura: est.estructura || null, escala: est.escala || 3, ordenAzar: !!est.ordenAzar, sugerencias: est.sugerencias || [], napping: est.napping || null, cata: est.cata || null, sorting: est.sorting || null, ordenFijo: !!est.ordenFijo,
       sesiones: est.sesiones.map(s => ({ Sesion: s.Sesion, NMuestras: s.NMuestras })),
       panelistas: est.panelistas,
     },

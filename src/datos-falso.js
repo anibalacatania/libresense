@@ -23,7 +23,7 @@ export async function iniciar() { await dormir(5); }
 
 const limpiar = (id, d) => ({ id, nombre: d.nombre, tecnica: d.tecnica || 'descriptiva', activo: !!d.activo,
   atributos: d.atributos || [], sesiones: d.sesiones || [], panelistas: d.panelistas || [], creado: d.creado || null,
-  estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, sorting: d.sorting || null, reinicio: d.reinicio || 0, dueno: d.dueno || '' });
+  estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, sorting: d.sorting || null, ordenFijo: !!d.ordenFijo, reinicio: d.reinicio || 0, dueno: d.dueno || '' });
 
 export async function estudiosActivos() {
   await dormir(st.latencia);
@@ -99,7 +99,7 @@ let n = 0;
 export async function crearEstudio(est) {
   if (!esAdmin()) denegar();
   const id = 'est' + (++n) + '_' + Date.now().toString(36);
-  s(`estudios/${id}`, { nombre: est.nombre, tecnica: est.tecnica || 'descriptiva', activo: true, atributos: est.atributos, estructura: est.estructura || null, escala: est.escala || 3, ordenAzar: !!est.ordenAzar, sugerencias: est.sugerencias || [], napping: est.napping || null, cata: est.cata || null, sorting: est.sorting || null,
+  s(`estudios/${id}`, { nombre: est.nombre, tecnica: est.tecnica || 'descriptiva', activo: true, atributos: est.atributos, estructura: est.estructura || null, escala: est.escala || 3, ordenAzar: !!est.ordenAzar, sugerencias: est.sugerencias || [], napping: est.napping || null, cata: est.cata || null, sorting: est.sorting || null, ordenFijo: !!est.ordenFijo,
     sesiones: est.sesiones.map(x => ({ Sesion: x.Sesion, NMuestras: x.NMuestras })), panelistas: est.panelistas, creado: new Date().toISOString(), dueno: st.usuario.email });
   s(`estudios/${id}/publico/diseno`, { filas: est.diseno.map(d => `${d.Sesion}|${d.Valuador}|${d.Orden}|${d.CodigoProducto}`) });
   s(`estudios/${id}/privado/diseno`, { filas: est.diseno.map(d => `${d.Sesion}|${d.Valuador}|${d.Orden}|${d.CodigoProducto}|${d.NombreProducto}|${d.Rep}`),

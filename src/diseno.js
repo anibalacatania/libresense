@@ -109,3 +109,29 @@ export function generarDisenoFlash({ vinos, reps, duplicados = [], nPanelistas, 
   }
   return { sesiones, diseno, totalMuestras: (vinos.length + duplicados.length) * reps };
 }
+
+// Orden fijo (uso didáctico): todos los panelistas prueban las muestras en el mismo orden (el de la lista de vinos),
+// sin Williams y sin códigos al azar: cada vino se identifica como "Vino 1", "Vino 2"… según su lugar en la lista.
+// Las repeticiones siguen el mismo orden (todos los vinos de la rep. 1, después los de la rep. 2…) y se reparten
+// en sesiones consecutivas; un vino no se repite dentro de una sesión.
+export function generarDisenoFijo({ vinos, porSesion, reps, nPanelistas, parejo, prefijo = 'Vino' }) {
+  const tam = tamaniosSesiones(vinos.length * reps, porSesion, parejo);
+  const etiqueta = v => `${prefijo} ${vinos.indexOf(v) + 1}`;
+  const secuencia = [];
+  for (let k = 1; k <= reps; k++) vinos.forEach(v => secuencia.push({ vino: v, rep: k, codigo: etiqueta(v) }));
+  const panelistas = Array.from({ length: nPanelistas }, (_, i) => 'V' + (i + 1));
+  const sesiones = [], diseno = [];
+  let i0 = 0;
+  tam.forEach((t, si) => {
+    const sesion = 'S' + (si + 1);
+    const muestras = secuencia.slice(i0, i0 + t); i0 += t;
+    panelistas.forEach(v => muestras.forEach((m, k) =>
+      diseno.push({ Sesion: sesion, Valuador: v, Orden: k + 1, NombreProducto: m.vino, Rep: m.rep, CodigoProducto: m.codigo })));
+    sesiones.push({
+      Sesion: sesion, NMuestras: muestras.length,
+      Vinos: muestras.map(m => `${m.codigo}: ${m.vino} (r${m.rep})`).join(' | '),
+      muestras, filasWilliams: 1,
+    });
+  });
+  return { sesiones, diseno, totalMuestras: vinos.length * reps };
+}
