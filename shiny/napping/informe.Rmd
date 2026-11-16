@@ -16,7 +16,7 @@ params:
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 9, fig.height = 7, dpi = 150)
 suppressMessages({ library(FactoMineR); library(SensoMineR); library(ggplot2) })
-for (f in list.files("R", pattern = "\\.R$", full.names = TRUE)) source(f, encoding = "UTF-8")
+for (f in list.files("R", pattern = "\\.R$", full.names = TRUE)) source(f, encoding = "UTF-8", local = TRUE)
 A <- armar(params$largo, params$sesiones, params$tarea, params$pal_tabla)
 m <- correr_mfa(A); d <- params$dims
 u <- uso_hoja(A, params$hoja)

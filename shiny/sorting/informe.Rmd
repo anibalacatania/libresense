@@ -15,7 +15,7 @@ params:
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 9, fig.height = 7, dpi = 150)
 suppressMessages({ library(FactoMineR); library(ggplot2) })
-for (f in list.files("R", pattern = "\\.R$", full.names = TRUE)) source(f, encoding = "UTF-8")
+for (f in list.files("R", pattern = "\\.R$", full.names = TRUE)) source(f, encoding = "UTF-8", local = TRUE)
 A <- armar(params$largo, params$sesiones)
 M <- coordenadas(A$G, params$metodo); d <- params$dims
 k <- min(params$k, nrow(A$G) - 1); cl <- clasificar(M$F, k)

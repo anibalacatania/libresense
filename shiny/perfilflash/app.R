@@ -22,7 +22,10 @@ library(ggrepel)
 library(rmarkdown)
 library(htmltools)
 
-for (f in list.files("R", pattern = "\\.R$", full.names = TRUE)) source(f, encoding = "UTF-8")
+# carpeta de esta app: "." si se publica sola; la fija la app combinada (shiny/app.R) si se publica todo junto
+APP_DIR <- if (exists("APP_DIR", inherits = FALSE)) APP_DIR else "."
+ruta <- function(...) file.path(APP_DIR, ...)
+for (f in list.files(ruta("R"), pattern = "\\.R$", full.names = TRUE)) source(f, encoding = "UTF-8", local = TRUE)
 
 origenes_extra <- strsplit(Sys.getenv("PF_ORIGENES_EXTRA", ""), ",")[[1]]
 origenes_extra <- origenes_extra[nzchar(origenes_extra)]
@@ -160,7 +163,7 @@ ui <- page_navbar(
   ),
 
   nav_panel("Ayuda", icon = icon("circle-question"),
-    card(card_body(includeHTML("ayuda.html")))
+    card(card_body(includeHTML(ruta("ayuda.html"))))
   )
 )
 
@@ -389,7 +392,7 @@ server <- function(input, output, session) {
     content = function(file) {
       withProgress(message = "Armando el informe…", {
         dir <- tempfile(); dir.create(dir)
-        file.copy("informe.Rmd", dir); file.copy("R", dir, recursive = TRUE)
+        file.copy(ruta("informe.Rmd"), dir); file.copy(ruta("R"), dir, recursive = TRUE)
         out <- rmarkdown::render(file.path(dir, "informe.Rmd"),
           output_format = if (input$formato == "word") rmarkdown::word_document() else rmarkdown::html_document(self_contained = TRUE, toc = TRUE),
           params = list(largo = datos()$largo, nombre = datos()$nombre, sesiones = input$sesiones, dims = dims(), nsim = input$nsim, k = input$k),

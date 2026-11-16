@@ -5,6 +5,8 @@ App web gratuita para análisis sensorial (antes "panel").
 App web para análisis sensorial con **varios estudios a la vez**, sesiones, repeticiones y diseño de Williams.
 Técnicas: **Análisis Descriptivo Cuantitativo** (escala 0–10), **RATA** (Rate-All-That-Apply), **Perfil Flash**, **Napping** (mapeo proyectivo), **CATA con aceptabilidad** (consumidores) y **Sorting** (agrupamiento libre).
 
+**Análisis en R:** las cuatro apps de Shiny se publican juntas como una sola (`shiny/app.R`, ver `shiny/LEEME.md`).
+
 **Manual de uso (PDF):** [manual/LibreSense-manual.pdf](manual/LibreSense-manual.pdf) — también enlazado desde la app (administración y pantalla inicial). Se regenera con `node manual/fuente/generar_pdf.js`.
 Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pages.
 
@@ -33,7 +35,7 @@ Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pa
      obligatorias, con lista de ayuda. Análisis en vivo: mapa (MDS clásico de las co-ocurrencias, validado contra `cmdscale`)
      con las palabras, grupos de muestras, matriz de co-ocurrencias, palabras por muestra, duplicados y los grupos de cada
      panelista. Resultados: matriz de grupos (para `MCA`/`fast`), matriz con palabras (FAST), co-ocurrencias, formato largo y
-     código R. Análisis completo en R: https://acatania.shinyapps.io/sorting/ (MCA, DISTATIS, MDS, elipses por bootstrap,
+     código R. Análisis completo en R: https://acatania.shinyapps.io/libresense/?t=sorting (MCA, DISTATIS, MDS, elipses por bootstrap,
      clasificación, palabras, panelistas; ver `shiny/sorting/LEEME.md`).
    - **CATA con aceptabilidad** (consumidores; Meyners y Castura, cap. 11 del mismo libro): muestras de a una en orden Williams,
      primero escala hedónica de 9 puntos (opcional) y después todos los términos que describen la muestra (orden de términos
@@ -41,7 +43,7 @@ Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pa
      Análisis en vivo: aceptabilidad (medias, % que gusta/disgusta, ANOVA vino + consumidor), frecuencias con Q de Cochran,
      análisis de correspondencias (como `FactoMineR::CA`, con el ideal como fila suplementaria), impacto de cada término en el
      agrado (t de Welch) y penalidades respecto del ideal (Ares et al., 2014: qué falta y qué sobra). Validado contra R.
-     Análisis completo en R: botón que abre https://acatania.shinyapps.io/cata/ (ver `shiny/cata/LEEME.md`): Tukey, McNemar
+     Análisis completo en R: botón que abre https://acatania.shinyapps.io/libresense/?t=cata (ver `shiny/cata/LEEME.md`): Tukey, McNemar
      de a pares, mapa de preferencias interno, segmentos de consumidores, informe Word/HTML y Excel.
    - **Napping / mapeo proyectivo** (según Dehlholm, cap. 9 del mismo libro): todas las muestras en la sesión, con códigos
      de 3 cifras y orden de cata balanceado (Williams); duplicados ocultos opcionales. El panelista prueba de a una y
@@ -51,7 +53,7 @@ Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pa
      Análisis en vivo: MFA con coordenadas sin estandarizar (`type = "c"`), palabras como suplementarias, RV de cada
      panelista, índice de desempeño con duplicados (Hopfer y Heymann) y mapas individuales. Resultados: matriz para MFA
      (X, Y por panelista + tabla de palabras, como la fig. 9.3), formato largo, palabras para `textual` y código R.
-     Análisis completo en R: botón que abre https://acatania.shinyapps.io/napping/ (ver `shiny/napping/LEEME.md`).
+     Análisis completo en R: botón que abre https://acatania.shinyapps.io/libresense/?t=napping (ver `shiny/napping/LEEME.md`).
    - **Perfil Flash** (según Delarue, cap. 7 de *Novel Techniques in Sensory Characterization and Consumer Profiling*):
      todas las copas juntas, marcadas con **letras** (A, B, C…) sorteadas entre los vinos e iguales para todos los panelistas;
      **sin Williams**. Cada repetición es una sesión con un nuevo sorteo. Duplicados ocultos opcionales para mirar repetibilidad.
@@ -73,7 +75,7 @@ Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pa
      y PCA estandarizado sobre las medias (equivale a `FactoMineR::PCA(scale.unit = TRUE)`), filtrable por sesión y por
      descriptores que discriminan. El biplot se descarga en SVG.
    - **Análisis completo en R (Shiny)** para Perfil Flash: botón en Análisis en vivo / Resultados que abre
-     https://acatania.shinyapps.io/perfilflash/ con los datos del estudio (ver `shiny/perfilflash/LEEME.md`).
+     https://acatania.shinyapps.io/libresense/?t=flash con los datos del estudio (ver `shiny/perfilflash/LEEME.md`).
    - **Resultados:** descarga en CSV para R (coma y punto decimal) o para Excel en español (punto y coma y coma decimal),
      con `NombreProducto` y `Rep` ya incluidos.
    - **Configuración:** link directo para panelistas (`?e=<id>`, útil para un QR), cerrar/reabrir, renombrar,
