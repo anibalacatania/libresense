@@ -13,9 +13,6 @@ interno y segmentos), descargas (PNG, Excel, CSV, informe Word/HTML, código R) 
 La conexión con la app es la misma que la de Perfil Flash y Napping: la administración le pasa a esta app, y solo a ella,
 el token de la sesión del administrador. También se puede usar subiendo el CSV de Resultados.
 
-> Normalmente se publica **junto con las otras técnicas** como una sola app (`shiny/app.R`, ver `shiny/LEEME.md`):
-> https://acatania.shinyapps.io/libresense/. Las instrucciones de abajo son para publicarla sola.
-
 ## Publicar (desde RStudio)
 ```r
 d <- path.expand("~/libresense_app"); z <- tempfile(fileext = ".zip")

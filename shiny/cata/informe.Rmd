@@ -16,7 +16,7 @@ params:
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 9, fig.height = 7, dpi = 150)
 suppressMessages({ library(FactoMineR); library(ggplot2) })
-for (f in list.files("R", pattern = "\\.R$", full.names = TRUE)) source(f, encoding = "UTF-8", local = TRUE)
+for (f in list.files("R", pattern = "\\.R$", full.names = TRUE)) source(f, encoding = "UTF-8")
 A <- armar(params$ancho, params$terminos, params$gusto, params$sesiones)
 co <- cochran(A, params$ajuste)
 ag <- if (A$gusto) agrado(A) else NULL

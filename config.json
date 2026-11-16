@@ -9,6 +9,6 @@
   },
   "shiny": "https://acatania.shinyapps.io/perfilflash/",
   "shinyNapping": "https://acatania.shinyapps.io/napping/",
-  "shinyCata": "https://acatania.shinyapps.io/libresense/?t=cata",
-  "shinySorting": "https://acatania.shinyapps.io/libresense/?t=sorting"
+  "shinyCata": "https://acatania.shinyapps.io/cata/",
+  "shinySorting": "https://acatania.shinyapps.io/sorting/"
 }

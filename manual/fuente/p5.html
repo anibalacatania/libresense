@@ -79,15 +79,13 @@ Elipses grandes en general indican un panel poco consistente o pocas personas.</
 En ADC y RATA sigue una columna por atributo; en CATA, Aceptabilidad y una columna por término (las filas con NombreProducto = IDEAL son el ideal de cada consumidor).</p>
 
 <h2>Análisis completo en R (Shiny)</h2>
-<p>Perfil Flash, Napping, CATA y Sorting tienen su análisis en R. Las cuatro están publicadas <b>juntas, como una sola app</b> de shinyapps.io
-(el plan gratuito permite pocas apps activas), que muestra la técnica que corresponde según la dirección. Se abre con el botón <b>Análisis completo en R (Shiny) ↗</b>
-en Análisis en vivo o en Resultados.</p>
+<p>Perfil Flash, Napping, CATA y Sorting tienen una app de R publicada en shinyapps.io. Se abre con el botón <b>Análisis completo en R (Shiny) ↗</b> en Análisis en vivo o en Resultados.</p>
 <table>
   <tr><th>Técnica</th><th>Dirección</th></tr>
-  <tr><td>Perfil Flash</td><td><a href="https://acatania.shinyapps.io/libresense/?t=flash">acatania.shinyapps.io/libresense/?t=flash</a></td></tr>
-  <tr><td>Napping</td><td><a href="https://acatania.shinyapps.io/libresense/?t=napping">acatania.shinyapps.io/libresense/?t=napping</a></td></tr>
-  <tr><td>CATA con aceptabilidad</td><td><a href="https://acatania.shinyapps.io/libresense/?t=cata">acatania.shinyapps.io/libresense/?t=cata</a></td></tr>
-  <tr><td>Sorting</td><td><a href="https://acatania.shinyapps.io/libresense/?t=sorting">acatania.shinyapps.io/libresense/?t=sorting</a></td></tr>
+  <tr><td>Perfil Flash</td><td><a href="https://acatania.shinyapps.io/perfilflash/">acatania.shinyapps.io/perfilflash</a></td></tr>
+  <tr><td>Napping</td><td><a href="https://acatania.shinyapps.io/napping/">acatania.shinyapps.io/napping</a></td></tr>
+  <tr><td>CATA con aceptabilidad</td><td><a href="https://acatania.shinyapps.io/cata/">acatania.shinyapps.io/cata</a></td></tr>
+  <tr><td>Sorting</td><td><a href="https://acatania.shinyapps.io/sorting/">acatania.shinyapps.io/sorting</a></td></tr>
 </table>
 <ul>
   <li><b>Cómo llegan los datos</b>: la administración le pasa a la app de R, y solo a esa ventana, la sesión del administrador. La app de R lee el estudio directamente de la base de datos, con los mismos permisos.
@@ -98,16 +96,18 @@ en Análisis en vivo o en Resultados.</p>
 <div class="caja ojo"><span class="tit">La primera vez tarda</span><p>En el plan gratuito de shinyapps.io las apps se “duermen” cuando nadie las usa. La primera apertura puede tardar 20–40 segundos.
 Si aparece “Disconnected from the server”, recargá la página o volvé a tocar el botón en la administración. El plan gratuito tiene además un límite de horas de uso por mes.</p></div>
 
-<h2>Publicar o actualizar la app de R</h2>
-<p>Cuando hay una versión nueva (o para publicarla por primera vez), se hace desde RStudio, con la cuenta de shinyapps.io ya configurada
-(<code>rsconnect::setAccountInfo</code>, una sola vez; el token y el secreto se copian desde shinyapps.io → Account → Tokens y no se comparten con nadie).
-Se publica la carpeta <code>shiny</code> completa, que contiene las cuatro técnicas:</p>
+<h2>Publicar o actualizar las apps de R</h2>
+<p>Cuando hay una versión nueva de una app de R (o para publicarla por primera vez), se hace desde RStudio, con la cuenta de shinyapps.io ya configurada
+(<code>rsconnect::setAccountInfo</code>, una sola vez; el token y el secreto se copian desde shinyapps.io → Account → Tokens y no se comparten con nadie):</p>
 <pre>d &lt;- path.expand("~/libresense_app"); z &lt;- tempfile(fileext = ".zip")
 download.file("https://github.com/anibalacatania/libresense/archive/refs/heads/main.zip", z, mode = "wb")
 unzip(z, exdir = d, overwrite = TRUE)
-rsconnect::deployApp(file.path(d, "libresense-main/shiny"), appName = "libresense", account = "acatania")</pre>
-<p>Ocupa un solo lugar en shinyapps.io. Si R pide actualizar paquetes, conviene aceptar; si un paquete no compila, actualizarlo primero con <code>install.packages()</code> y volver a publicar.
-Las carpetas de cada técnica (<code>shiny/perfilflash</code>, <code>shiny/napping</code>, <code>shiny/cata</code>, <code>shiny/sorting</code>) también se pueden publicar por separado si alguna vez sobra lugar.</p>
+# una línea por app que se quiera publicar o actualizar:
+rsconnect::deployApp(file.path(d, "libresense-main/shiny/perfilflash"), appName = "perfilflash", account = "acatania")
+rsconnect::deployApp(file.path(d, "libresense-main/shiny/napping"),     appName = "napping",     account = "acatania")
+rsconnect::deployApp(file.path(d, "libresense-main/shiny/cata"),        appName = "cata",        account = "acatania")
+rsconnect::deployApp(file.path(d, "libresense-main/shiny/sorting"),     appName = "sorting",     account = "acatania")</pre>
+<p>Si R pide actualizar paquetes, conviene aceptar. Si un paquete no compila, actualizarlo primero con <code>install.packages()</code> y volver a publicar.</p>
 
 <!-- ===================================================================== 14 CONFIGURACION -->
 <h1 id="c14"><span class="num">14</span>Configuración y buenas prácticas</h1>

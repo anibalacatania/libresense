@@ -26,9 +26,6 @@ Se publica en **https://acatania.shinyapps.io/perfilflash/** (dirección configu
 
 También se puede usar sola, subiendo la **Matriz para MFA / GPA** o el **Formato largo** (CSV) que descarga la app.
 
-> Normalmente se publica **junto con las otras técnicas** como una sola app (`shiny/app.R`, ver `shiny/LEEME.md`):
-> https://acatania.shinyapps.io/libresense/. Las instrucciones de abajo son para publicarla sola.
-
 ## Publicar (una vez, desde RStudio)
 ```r
 install.packages(c("shiny", "bslib", "ggplot2", "ggrepel", "FactoMineR", "SensoMineR", "DT", "httr2",

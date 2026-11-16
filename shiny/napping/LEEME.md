@@ -12,9 +12,6 @@ sesiones), descargas (PNG, Excel, matriz, informe Word/HTML, código R) y ayuda.
 La conexión con la app es la misma que la del Perfil Flash: la administración le pasa a esta app, y solo a ella, el token
 de la sesión del administrador; también se puede usar subiendo la matriz o el formato largo (CSV).
 
-> Normalmente se publica **junto con las otras técnicas** como una sola app (`shiny/app.R`, ver `shiny/LEEME.md`):
-> https://acatania.shinyapps.io/libresense/. Las instrucciones de abajo son para publicarla sola.
-
 ## Publicar (desde RStudio)
 ```r
 d <- path.expand("~/perfilflash_app"); z <- tempfile(fileext = ".zip")
