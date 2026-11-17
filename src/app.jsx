@@ -30,7 +30,7 @@ const Check = () => <Icon path="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /
 const Lock = () => <Icon path="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />;
 
 const Tarjeta = ({ children, ancho = 'max-w-md' }) => (
-  <div className="min-h-screen flex items-center justify-center p-4">
+  <div className="min-h-[calc(100vh-2.5rem)] flex items-center justify-center p-4">
     <div className={`bg-white rounded-2xl shadow-2xl p-6 sm:p-8 ${ancho} w-full`}>{children}</div>
   </div>
 );
@@ -3212,9 +3212,18 @@ function Administradores({ yo }) {
 }
 
 // =====================================================================
+// autoría: una línea discreta al pie de todas las pantallas (panelistas y administración)
+const AUTOR = 'Aníbal Catania', CORREO = 'anibalacatania@gmail.com';
+const Firma = () => (
+  <footer className="no-print text-center text-xs text-white/50 px-4 pb-4 leading-relaxed">
+    LibreSense · desarrollada por {AUTOR} ·{' '}
+    <a href={`mailto:${CORREO}`} className="underline decoration-white/30 hover:text-white/80">{CORREO}</a>
+  </footer>
+);
+
 function Raiz() {
   const [hash, setHash] = useState(location.hash);
   useEffect(() => { const f = () => setHash(location.hash); window.addEventListener('hashchange', f); return () => window.removeEventListener('hashchange', f); }, []);
-  return hash === '#admin' ? <AdminApp/> : <PanelApp/>;
+  return <>{hash === '#admin' ? <AdminApp/> : <PanelApp/>}<Firma/></>;
 }
 createRoot(document.getElementById('root')).render(<Raiz/>);

@@ -5,6 +5,8 @@ App web gratuita para análisis sensorial (antes "panel").
 App web para análisis sensorial con **varios estudios a la vez**, sesiones, repeticiones y diseño de Williams.
 Técnicas: **Análisis Descriptivo Cuantitativo** (escala 0–10), **RATA** (Rate-All-That-Apply), **Perfil Flash**, **Napping** (mapeo proyectivo), **CATA con aceptabilidad** (consumidores) y **Sorting** (agrupamiento libre).
 
+**Autor:** Aníbal Catania (anibalacatania@gmail.com).
+
 **Manual de uso (PDF):** [manual/LibreSense-manual.pdf](manual/LibreSense-manual.pdf) — también enlazado desde la app (administración y pantalla inicial). Se regenera con `node manual/fuente/generar_pdf.js`.
 Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pages.
 
