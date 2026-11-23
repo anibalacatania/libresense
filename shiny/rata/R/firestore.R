@@ -52,16 +52,17 @@ fs_leer_estudio <- function(proyecto, eid, token) {
   }
   atributos <- unlist(est$atributos %||% list())
   list(estudio = est, atributos = atributos, grupos = grupos_de(est$estructura, atributos),
-       escala = if (identical(est$tecnica, "descriptiva")) 10 else as.numeric(est$escala %||% 3),
+       escala = if (identical(est$tecnica, "descriptiva")) 10 else { e <- suppressWarnings(as.numeric(est$escala)); if (length(e) != 1 || is.na(e)) 3 else e },
        ancho = armar_ancho(priv, lapply(docs, fs_doc), atributos))
 }
 
 # modalidad (# Aroma, # Boca…) de cada descriptor, según la lista del estudio
 grupos_de <- function(estructura, atributos) {
   g <- stats::setNames(rep("", length(atributos)), atributos)
-  if (is.null(estructura) || !length(estructura)) return(g)
+  if (!is.list(estructura) || !length(estructura)) return(g)   # sin grupos: Firebase la devuelve vacía (NA)
   g1 <- ""
   for (it in estructura) {
+    if (!is.list(it)) next
     if (identical(it$t, "g1")) g1 <- it$n %||% ""
     else if (identical(it$t, "a") && !is.null(it$k) && it$k %in% atributos) g[[it$k]] <- g1
   }
