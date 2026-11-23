@@ -79,9 +79,10 @@ Elipses grandes en general indican un panel poco consistente o pocas personas.</
 En ADC y RATA sigue una columna por atributo; en CATA, Aceptabilidad y una columna por término (las filas con NombreProducto = IDEAL son el ideal de cada consumidor).</p>
 
 <h2>Análisis completo en R (Shiny)</h2>
-<p>Perfil Flash, Napping, CATA y Sorting tienen una app de R publicada en shinyapps.io. Se abre con el botón <b>Análisis completo en R (Shiny) ↗</b> en Análisis en vivo o en Resultados.</p>
+<p>RATA, Perfil Flash, Napping, CATA y Sorting tienen una app de R publicada en shinyapps.io. Se abre con el botón <b>Análisis completo en R (Shiny) ↗</b> en Análisis en vivo o en Resultados.</p>
 <table>
   <tr><th>Técnica</th><th>Dirección</th></tr>
+  <tr><td>RATA (y ADC)</td><td><a href="https://acatania.shinyapps.io/rata/">acatania.shinyapps.io/rata</a></td></tr>
   <tr><td>Perfil Flash</td><td><a href="https://acatania.shinyapps.io/perfilflash/">acatania.shinyapps.io/perfilflash</a></td></tr>
   <tr><td>Napping</td><td><a href="https://acatania.shinyapps.io/napping/">acatania.shinyapps.io/napping</a></td></tr>
   <tr><td>CATA con aceptabilidad</td><td><a href="https://acatania.shinyapps.io/cata/">acatania.shinyapps.io/cata</a></td></tr>
@@ -106,7 +107,8 @@ unzip(z, exdir = d, overwrite = TRUE)
 rsconnect::deployApp(file.path(d, "libresense-main/shiny/perfilflash"), appName = "perfilflash", account = "acatania")
 rsconnect::deployApp(file.path(d, "libresense-main/shiny/napping"),     appName = "napping",     account = "acatania")
 rsconnect::deployApp(file.path(d, "libresense-main/shiny/cata"),        appName = "cata",        account = "acatania")
-rsconnect::deployApp(file.path(d, "libresense-main/shiny/sorting"),     appName = "sorting",     account = "acatania")</pre>
+rsconnect::deployApp(file.path(d, "libresense-main/shiny/sorting"),     appName = "sorting",     account = "acatania")
+rsconnect::deployApp(file.path(d, "libresense-main/shiny/rata"),        appName = "rata",        account = "acatania")</pre>
 <p>Si R pide actualizar paquetes, conviene aceptar. Si un paquete no compila, actualizarlo primero con <code>install.packages()</code> y volver a publicar.</p>
 
 <!-- ===================================================================== 14 CONFIGURACION -->

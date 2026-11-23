@@ -2036,6 +2036,7 @@ function Analisis({ eid, est, priv }) {
       <div className="flex flex-wrap items-center gap-3 mb-4 text-sm">
         <span className="text-gray-700"><b>{res.filas.length}</b> evaluaciones · <b>{res.panelistas}</b> panelistas · <b>{res.vinos.length}</b> vinos</span>
         <span className="text-xs text-emerald-600">● en vivo</span>
+        {esRata && <span className="ml-auto order-last"><BotonShiny eid={eid} tecnica="rata" setMsg={setMsg}/></span>}
         <select value={sesion} onChange={e => setSesion(e.target.value)} className="border-2 border-gray-200 rounded-lg px-2 py-1">
           <option value="">Todas las sesiones</option>
           {est.sesiones.map(s => <option key={s.Sesion} value={s.Sesion}>Sesión {s.Sesion}</option>)}
@@ -2366,6 +2367,7 @@ function Resultados({ eid, est, priv }) {
             <button onClick={() => descargar(`${base}_respuestas_excel.csv`, aCSV(filas, cols, ';', true))} disabled={!filas.length}
               className={btn + ' bg-emerald-100 hover:bg-emerald-200 text-emerald-800'}>Descargar CSV (para Excel en español)</button>
             <button onClick={cargar} className={btn + ' bg-gray-100 hover:bg-gray-200'}>Actualizar</button>
+            {est.tecnica === 'rata' && <BotonShiny eid={eid} tecnica="rata" setMsg={setMsg}/>}
           </div>
           <p className="text-xs text-gray-500 mb-2">“Para R”: separador coma y punto decimal (read.csv). “Para Excel”: separador punto y coma y coma decimal.
             {est.tecnica === 'rata' && <> En RATA cada descriptor vale 0 si no fue marcado y 1–{est.escala || 3} según la intensidad elegida.</>}

@@ -149,7 +149,7 @@ export function guardarFlash(eid, { Sesion, Valuador, muestras, atributos, def }
   })().finally(() => { pendientes--; avisar(); notificar(); });
 }
 
-export const configShiny = (tecnica) => (tecnica === 'napping' ? (window.__SHINY_NAP || null) : tecnica === 'cata' ? (window.__SHINY_CATA || null) : tecnica === 'sorting' ? (window.__SHINY_SORT || null) : (window.__SHINY || null));
+export const configShiny = (tecnica) => (tecnica === 'napping' ? (window.__SHINY_NAP || null) : tecnica === 'cata' ? (window.__SHINY_CATA || null) : tecnica === 'sorting' ? (window.__SHINY_SORT || null) : tecnica === 'rata' ? (window.__SHINY_RATA || null) : (window.__SHINY || null));
 export const proyectoId = () => 'demo';
 export async function tokenAdmin() { return esAdmin() ? 'TOKEN-OK' : null; }
 

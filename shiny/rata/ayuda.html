@@ -1,0 +1,36 @@
+<div style="max-width: 860px">
+<h4>RATA (Rate-All-That-Apply)</h4>
+<p>Cada panelista marca los descriptores que percibe en la muestra y les asigna una intensidad (bajo, medio, alto, o una escala de 5 puntos).
+Los descriptores que no marca valen 0. Es una variante de CATA con intensidad: discrimina mejor que CATA y es más rápida de entrenar que el perfil clásico.
+Esta app también sirve para el Análisis Descriptivo Cuantitativo (escala 0–10).</p>
+
+<h5>Análisis</h5>
+<ul>
+<li><b>Intensidad media</b> de cada descriptor con el 0 de “no marcado” incluido, como recomiendan Meyners, Jaeger y Ares (2016).
+También se puede ver el % de panelistas que lo marcó y la intensidad media solo cuando se marcó.</li>
+<li><b>ANOVA</b> por descriptor. Con repeticiones: producto + panelista + producto × panelista, con el panelista como efecto aleatorio
+(la F del producto se prueba contra la interacción). Sin repeticiones: producto + panelista. <b>Tukey</b> para las comparaciones de a pares.</li>
+<li><b>Citación</b>: Q de Cochran y McNemar sobre presencia/ausencia (el análisis CATA de los mismos datos).</li>
+<li><b>PCA</b> de las medias (estandarizado), con <b>elipses de confianza</b> por remuestreo de panelistas (como <code>SensoMineR::panellipse</code>)
+y clasificación de los productos.</li>
+<li><b>Perfiles</b> (gráfico de araña) de los productos elegidos.</li>
+<li><b>Desempeño del panel</b>: acuerdo de cada panelista con el panel (correlación de sus medias con las del panel), discriminación
+(ANOVA de cada panelista) y repetibilidad (desvío entre repeticiones). Las dos últimas necesitan repeticiones.</li>
+</ul>
+
+<h5>Cómo leer el desempeño</h5>
+<ul>
+<li>Un panelista con acuerdo cercano a 0 o negativo en muchos descriptores ordena los productos distinto que el resto: puede no haber entendido algún
+descriptor, usar otra referencia o tener un problema de percepción. Conviene revisarlo antes de sacar conclusiones o repetir el entrenamiento.</li>
+<li>Una interacción producto × panelista significativa indica que el panel no está de acuerdo en ese descriptor: mirá el gráfico de líneas producto × panelista.</li>
+</ul>
+
+<h5>Bibliografía</h5>
+<ul>
+<li>Ares, G., Bruzzone, F., Vidal, L., Cadena, R. S., Giménez, A., Pineau, B., Hunter, D. C., Paisley, A. G. y Jaeger, S. R. (2014). Evaluation of a rating-based variant of check-all-that-apply questions: Rate-all-that-apply (RATA). <i>Food Quality and Preference</i>, 36, 87–95.</li>
+<li>Meyners, M., Jaeger, S. R. y Ares, G. (2016). On the analysis of Rate-All-That-Apply (RATA) data. <i>Food Quality and Preference</i>, 49, 1–10.</li>
+<li>Meyners, M., Castura, J. C. y Carr, B. T. (2013). Existing and new approaches for the analysis of CATA data. <i>Food Quality and Preference</i>, 30, 309–319.</li>
+<li>Lê, S. y Husson, F. (2008). SensoMineR: a package for sensory data analysis. <i>Journal of Sensory Studies</i>, 23, 14–25.</li>
+<li>Næs, T., Brockhoff, P. B. y Tomic, O. (2010). <i>Statistics for Sensory and Consumer Science</i>. Wiley.</li>
+</ul>
+</div>

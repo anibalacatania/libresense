@@ -29,6 +29,8 @@ Los datos se guardan en **Firebase (Firestore)**; la app se publica en GitHub Pa
    - Opción: orden de los descriptores al azar por panelista (dentro de cada grupo) para reducir el sesgo por posición.
    - **RATA:** el panelista marca los descriptores presentes y elige la intensidad (bajo/medio/alto, o escala de 5).
      En resultados: 0 = no marcado, 1–3 (o 1–5) = intensidad. No se puede enviar un descriptor marcado sin intensidad.
+     Análisis completo en R: https://acatania.shinyapps.io/rata/ (ANOVA con panelista aleatorio y Tukey, citación con Cochran/McNemar,
+     PCA con elipses, perfiles, desempeño del panel; ver `shiny/rata/LEEME.md`).
    - **Sorting / agrupamiento libre** (Chollet, Valentin y Abdi, mismo libro): todas las muestras juntas (códigos de 3 cifras,
      orden de cata sugerido con Williams; duplicados ocultos opcionales). El panelista **arrastra** las copas a grupos de
      muestras parecidas (o toca la copa y el grupo): no todas juntas ni cada una sola. Palabras por grupo opcionales u

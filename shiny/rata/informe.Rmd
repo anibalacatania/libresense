@@ -1,0 +1,71 @@
+---
+title: "RATA: `r params$nombre`"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+params:
+  ancho: NULL
+  atributos: NULL
+  grupos: NULL
+  escala: 3
+  nombre: "Estudio"
+  sesiones: NULL
+  modalidades: NULL
+  ajuste: "none"
+  solo_sig: TRUE
+  umbral: 0.05
+  k: 3
+  nboot: 300
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 9, fig.height = 7, dpi = 150)
+suppressMessages({ library(FactoMineR); library(ggplot2) })
+for (f in list.files("R", pattern = "\\.R$", full.names = TRUE)) source(f, encoding = "UTF-8")
+A <- armar(params$ancho, params$atributos, params$grupos, params$sesiones, params$modalidades)
+R <- analisis_medias(A); co <- cochran(A, params$ajuste); D <- desempeno(A, R)
+```
+
+## Datos
+
+- Panelistas: **`r length(A$panelistas)`** · Productos: **`r length(A$productos)`** · Descriptores: **`r length(A$atributos)`** · Evaluaciones: **`r nrow(A$d)`**
+- `r if (A$conrep) paste("Repeticiones:", length(unique(A$d$Rep)), "— ANOVA con panelista aleatorio (F del producto contra la interacción producto × panelista).") else "Sin repeticiones — ANOVA producto + panelista."`
+- Escala: 0 = no marcado; 1 a `r params$escala` = intensidad. Las medias incluyen los 0 (Meyners, Jaeger y Ares, 2016).
+
+## Intensidad media
+
+```{r, fig.height = 8}
+g_medias(A, R, params$escala)
+```
+
+```{r}
+knitr::kable(tabla_medias(A, R, "medias"), row.names = FALSE)
+```
+
+## Frecuencia de citación
+
+```{r, fig.height = 8}
+g_citas(A, co)
+```
+
+## Mapa de productos (PCA)
+
+```{r}
+pc <- tryCatch(correr_pca(A, R, params$solo_sig, params$umbral), error = function(e) NULL)
+if (!is.null(pc)) { cl <- clasificar(pc, params$k); g_pca(pc, 1:2, cl$cl, elipses(A, pc, params$nboot)) }
+```
+
+## Perfiles
+
+```{r, fig.height = 8}
+sig <- A$atributos[vapply(A$atributos, function(x) isTRUE(R[[x]]$an$p < 0.05), TRUE)]
+if (length(sig) >= 3) g_radar(A, R, A$productos, sig, params$escala)
+```
+
+## Desempeño del panel
+
+```{r}
+knitr::kable(D$resumen, row.names = FALSE)
+```
+
+```{r, fig.height = 6}
+g_calor(D$acu, "Acuerdo de cada panelista con el panel", "Correlación de sus medias con las del panel", "r")
+```
