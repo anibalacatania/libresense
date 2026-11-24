@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as datos from 'datos';
-import { ordenNatural, tamaniosSesiones, generarDiseno, generarDisenoFlash, generarDisenoFijo, LETRAS } from './diseno.js';
+import { ordenNatural, tamaniosSesiones, generarDiseno, generarDisenoFlash, generarDisenoFijo, generarDisenoNapFijo, LETRAS } from './diseno.js';
 import { GUSTO, HEDONICA, analizarCata } from './cata.js';
 import { hojasSorting, coocurrencias, mdsSorting, palabrasSorting, palabrasEnMapa, grupos as gruposSorting } from './sorting.js';
 import { TECNICAS, nombreTecnica, palabraLista, etiquetasRata, parsearDescriptores, bloquesDe, rangosDesdePosiciones, HOJAS, claveX, claveY } from './tecnicas.js';
@@ -1519,7 +1519,7 @@ function NuevoEstudio({ creado, cancelar }) {
   const dupMalos = duplicados.filter(d => !vinos.includes(d));
   const porSesionEf = esFlash ? Math.max(1, vinos.length) : esNap || esSort ? Math.max(1, vinos.length + duplicados.length) : Number(porSesion);
   const dup = vinos.filter((v, i) => vinos.indexOf(v) !== i);
-  const conFijo = fijo && !juntas;   // orden fijo y "Vino 1, Vino 2…" (solo ADC, RATA y CATA)
+  const conFijo = fijo && (!juntas || esNap);   // orden fijo: "Vino 1, Vino 2…" (ADC, RATA, CATA) o letras A, B, C… (Napping)
   const pref = prefijo.replace(/[|]/g, '').replace(/\s+/g, ' ').trim() || 'Vino';
 
   const generar = () => {
@@ -1541,10 +1541,14 @@ function NuevoEstudio({ creado, cancelar }) {
     if (esCata && atributos.some(a => a.toLowerCase() === GUSTO.toLowerCase())) return setMsg({ t: 'error', m: `“${GUSTO}” está reservado para la escala de agrado: usá otro nombre de término.` });
     if (atributos.length > 300) return setMsg({ t: 'error', m: 'Máximo 300 descriptores por estudio.' });
     if (!juntas && Number(porSesion) > vinos.length) return setMsg({ t: 'error', m: `No puede haber más vinos por sesión (${porSesion}) que vinos distintos (${vinos.length}): un vino no se repite dentro de una sesión.` });
-    if (conFijo && `${pref} ${vinos.length}`.length > 10) return setMsg({ t: 'error', m: `El nombre de las muestras es demasiado largo: “${pref} ${vinos.length}” (máximo 10 caracteres). Usá un prefijo más corto.` });
+    if (conFijo && esNap && vinos.length + duplicados.length > 26) return setMsg({ t: 'error', m: 'Con letras hay un máximo de 26 muestras (A–Z), duplicados incluidos.' });
+    if (conFijo && !esNap && `${pref} ${vinos.length}`.length > 10) return setMsg({ t: 'error', m: `El nombre de las muestras es demasiado largo: “${pref} ${vinos.length}” (máximo 10 caracteres). Usá un prefijo más corto.` });
     if (vinos.length * reps > 900) return setMsg({ t: 'error', m: 'Demasiadas muestras para códigos de 3 dígitos (máx. 900 vinos × repeticiones).' });
     setPrev(esFlash
       ? generarDisenoFlash({ vinos, reps: Number(reps), duplicados, nPanelistas: Number(nPan), semilla: Number(semilla) })
+      : esNap && conFijo
+      // Napping didáctico: mismo orden para todos y letras A, B, C… (como el Perfil Flash)
+      ? generarDisenoNapFijo({ vinos, duplicados, reps: Number(reps), nPanelistas: Number(nPan) })
       : esNap || esSort
       // Napping y Sorting: todas las muestras en la sesión, orden de cata balanceado (Williams), códigos de 3 cifras; duplicados como muestras aparte
       ? generarDiseno({ vinos: [...vinos, ...duplicados.map(d => `${d} (dup)`)], porSesion: porSesionEf, reps: Number(reps), nPanelistas: Number(nPan), parejo: false, semilla: Number(semilla) })
@@ -1710,14 +1714,19 @@ function NuevoEstudio({ creado, cancelar }) {
             <input type="checkbox" checked={parejo} onChange={e => setParejo(e.target.checked)} className="w-4 h-4" />
             Repartir parejo entre sesiones (ej. 24 muestras de a 7 → 6+6+6+6 en vez de 7+7+7+3)
           </label>}
-          {!juntas && (
+          {(!juntas || esNap) && (
             <div className={`rounded-lg p-3 ${fijo ? 'bg-amber-50 border border-amber-200' : ''}`}>
               <label className="flex items-start gap-2 text-sm text-gray-700">
                 <input type="checkbox" checked={fijo} onChange={e => setFijo(e.target.checked)} className="w-4 h-4 mt-0.5" />
-                <span><b>Mismo orden para todos, sin códigos</b> (uso didáctico): sin diseño de Williams; todos prueban los vinos en el orden de la lista
-                  y los ven como “{pref} 1”, “{pref} 2”… La app pasa de uno al siguiente al enviar.</span>
+                {esNap
+                  ? <span><b>Mismo orden para todos, con letras</b> (uso didáctico): sin diseño de Williams; todos prueban las muestras en el orden de la lista,
+                      identificadas con letras como en el Perfil Flash: A = el primer vino de la lista, B = el segundo… (los duplicados, al final).</span>
+                  : <span><b>Mismo orden para todos, sin códigos</b> (uso didáctico): sin diseño de Williams; todos prueban los vinos en el orden de la lista
+                      y los ven como “{pref} 1”, “{pref} 2”… La app pasa de uno al siguiente al enviar.</span>}
               </label>
-              {fijo && (
+              {fijo && esNap && <p className="mt-2 ml-6 text-xs text-amber-800">Sin orden balanceado ni códigos al azar, el mapa puede tener efectos de orden y de expectativa:
+                sirve para enseñar la técnica o para practicar, no para conclusiones sobre los vinos.</p>}
+              {fijo && !esNap && (
                 <div className="mt-2 ml-6 space-y-2">
                   <label className="flex items-center gap-2 text-sm text-gray-700">Nombre de las muestras
                     <input className="border-2 border-gray-200 rounded-lg px-2 py-1 w-28" value={prefijo} maxLength={7} onChange={e => setPrefijo(e.target.value)} />

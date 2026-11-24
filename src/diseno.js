@@ -135,3 +135,20 @@ export function generarDisenoFijo({ vinos, porSesion, reps, nPanelistas, parejo,
   });
   return { sesiones, diseno, totalMuestras: vinos.length * reps };
 }
+
+// Napping didáctico: todos prueban las muestras en el mismo orden, identificadas con letras (A, B, C…) como en el
+// Perfil Flash. La letra sigue el orden de la lista de vinos (A = el primero); los duplicados van al final.
+// Cada repetición es una sesión con el mismo orden y las mismas letras.
+export function generarDisenoNapFijo({ vinos, duplicados = [], reps, nPanelistas }) {
+  const panelistas = Array.from({ length: nPanelistas }, (_, i) => 'V' + (i + 1));
+  const items = [...vinos, ...duplicados.map(d => `${d} (dup)`)];
+  const sesiones = [], diseno = [];
+  for (let k = 1; k <= reps; k++) {
+    const sesion = 'S' + k;
+    const muestras = items.map((v, i) => ({ vino: v, rep: k, codigo: LETRAS[i] }));
+    panelistas.forEach(v => muestras.forEach((m, i) =>
+      diseno.push({ Sesion: sesion, Valuador: v, Orden: i + 1, NombreProducto: m.vino, Rep: m.rep, CodigoProducto: m.codigo })));
+    sesiones.push({ Sesion: sesion, NMuestras: muestras.length, Vinos: muestras.map(m => `${m.codigo}: ${m.vino}`).join(' | '), muestras, filasWilliams: 1 });
+  }
+  return { sesiones, diseno, totalMuestras: items.length * reps };
+}
