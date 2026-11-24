@@ -1,7 +1,7 @@
 // Genera index.html + app.js a partir de src/.
 //
 // Uso (desde la carpeta del repositorio):
-//   npm i -D esbuild firebase react@18 react-dom@18 tailwindcss@3
+//   npm i -D esbuild firebase react@18 react-dom@18 tailwindcss@3 qrcode@1
 //   node src/build.mjs            -> versión real (Firebase)
 //   node src/build.mjs --prueba   -> versión de prueba con datos en memoria (no publicar)
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';

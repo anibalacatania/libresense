@@ -1907,7 +1907,10 @@ function Servicio({ est, priv }) {
         </select>
         <button onClick={() => window.print()} className="bg-gray-800 text-white px-4 py-2 rounded-lg font-semibold">Imprimir</button>
       </div>
-      <h2 className="text-xl font-bold mb-1">{est.nombre} — Sesión {sel} ({ses.NMuestras} muestras)</h2>
+      <div className="flex items-start justify-between gap-4">
+        <h2 className="text-xl font-bold mb-1">{est.nombre} — Sesión {sel} ({ses.NMuestras} muestras)</h2>
+        {est.id && <div className="text-center shrink-0"><QR link={`${urlBase()}?e=${est.id}`} className="w-24 h-24" /><p className="text-[10px] text-gray-500">Panelistas: escaneen para entrar</p></div>}
+      </div>
       {est.tecnica === 'flash' ? (
         <div>
           <p className="text-sm text-gray-600 mb-3">Perfil Flash: todos los panelistas reciben <b>las mismas copas, juntas</b>, cada una marcada con su letra.
@@ -3094,6 +3097,48 @@ function Compartir({ eid, est, recargar }) {
   );
 }
 
+// Código QR del link directo: se ve en pantalla, se descarga como imagen o se imprime en una hoja para la sala
+// (la librería se carga solo cuando hace falta)
+const libQR = async () => { const m = await import('qrcode'); return m.default || m; };
+const svgQR = async (texto) => (await libQR()).toString(texto, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
+function QR({ link, className = 'w-40 h-40' }) {
+  const [svg, setSvg] = useState('');
+  useEffect(() => { let vivo = true; svgQR(link).then(x => { if (vivo) setSvg(x); }).catch(e => console.error('QR', e)); return () => { vivo = false; }; }, [link]);
+  return <div className={`bg-white ${className}`} data-qr={link} dangerouslySetInnerHTML={{ __html: svg }} />;
+}
+function CodigoQR({ link, nombre }) {
+  const archivo = nombre.replace(/[^\w\-]+/g, '_') + '_QR.png';
+  const bajar = async () => {
+    const url = await (await libQR()).toDataURL(link, { width: 1024, margin: 2, errorCorrectionLevel: 'M' });
+    const a = document.createElement('a'); a.href = url; a.download = archivo; document.body.appendChild(a); a.click(); a.remove();
+  };
+  const imprimir = async () => {
+    const w = window.open('', '_blank'); if (!w) return;
+    const svg = await svgQR(link);
+    const e = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>QR · ${e(nombre)}</title>
+      <style>body{font-family:system-ui,sans-serif;text-align:center;padding:12mm;color:#1e1b4b}h1{font-size:30pt;margin:0 0 4mm}
+      p{font-size:15pt;color:#4b5563;margin:2mm 0}.qr{width:120mm;height:120mm;margin:8mm auto}.l{font-size:10pt;color:#6b7280;word-break:break-all}
+      .pie{margin-top:12mm;font-size:9pt;color:#9ca3af}</style></head><body>
+      <h1>${e(nombre)}</h1><p>Escaneá el código con la cámara del celular para entrar a la evaluación</p>
+      <div class="qr">${svg}</div><p class="l">${e(link)}</p><p class="pie">LibreSense</p>
+      <script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`);
+    w.document.close();
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-4 mt-3">
+      <QR link={link} className="w-40 h-40 border rounded-lg p-1" />
+      <div className="space-y-2">
+        <p className="text-sm text-gray-600 max-w-xs">Código QR del mismo link: los panelistas lo escanean con la cámara del celular y entran directo a este estudio.</p>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={bajar} className={btn + ' bg-purple-600 hover:bg-purple-700 text-white'}>Descargar QR (imagen)</button>
+          <button onClick={imprimir} className={btn + ' bg-gray-100 hover:bg-gray-200'}>Imprimir hoja con el QR</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Configuracion({ eid, est, rol, recargar, borrado }) {
   const [nombre, setNombre] = useState(est.nombre);
   const [confirmaTxt, setConfirmaTxt] = useState('');
@@ -3111,12 +3156,13 @@ function Configuracion({ eid, est, rol, recargar, borrado }) {
       <Mensaje msg={msg}/>
       <section>
         <h3 className="font-bold text-gray-800 mb-2">Link directo para los panelistas</h3>
-        <p className="text-sm text-gray-600 mb-2">Abre este estudio sin pasar por la lista (útil para un QR).</p>
+        <p className="text-sm text-gray-600 mb-2">Abre este estudio sin pasar por la lista: para mandar por WhatsApp o mostrar el código QR en la sala.</p>
         <div className="flex gap-2">
           <input readOnly value={link} className={inp + ' mt-0 text-sm'} onFocus={e => e.target.select()} />
           <button onClick={() => { navigator.clipboard && navigator.clipboard.writeText(link); setCopiado(true); setTimeout(() => setCopiado(false), 1500); }}
             className={btn + ' bg-gray-100 hover:bg-gray-200 whitespace-nowrap'}>{copiado ? '¡Copiado!' : 'Copiar'}</button>
         </div>
+        <CodigoQR link={link} nombre={est.nombre} />
       </section>
       <section>
         <h3 className="font-bold text-gray-800 mb-2">Estado</h3>
