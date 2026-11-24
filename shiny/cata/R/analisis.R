@@ -92,9 +92,14 @@ tabla_terminos <- function(A, coch) {
 # ---------------------------------------------------------------- mapa (análisis de correspondencias)
 correr_ca <- function(A, solo_sig = FALSE, coch = NULL, ideal = TRUE, agrado = TRUE) {
   F <- frecuencias(A)
-  ts <- A$usados
-  if (solo_sig && !is.null(coch)) ts <- ts[vapply(ts, function(t) isTRUE(coch$res[[t]]$p < 0.05), TRUE)]
-  if (length(ts) < 2 || length(A$productos) < 3) stop("El mapa necesita al menos 3 productos y 2 términos marcados.")
+  ts <- A$usados; todos <- FALSE
+  if (solo_sig && !is.null(coch)) {
+    sig <- ts[vapply(ts, function(t) isTRUE(coch$res[[t]]$p < 0.05), TRUE)]
+    # con pocos consumidores puede que ningún término discrimine todavía: se usan todos y se avisa
+    if (length(sig) >= 2) ts <- sig else todos <- TRUE
+  }
+  if (length(A$productos) < 3) stop("El mapa necesita al menos 3 productos con respuestas.")
+  if (length(ts) < 2) stop("El mapa necesita al menos 2 términos marcados en algún producto.")
   X <- as.data.frame(F[, ts, drop = FALSE], check.names = FALSE)
   sup_row <- NULL; sup_q <- NULL
   if (ideal && !is.null(A$ideal)) { X <- rbind(X, Ideal = colSums(A$ideal[, ts, drop = FALSE])); sup_row <- nrow(X) }
@@ -104,7 +109,9 @@ correr_ca <- function(A, solo_sig = FALSE, coch = NULL, ideal = TRUE, agrado = T
     sup_q <- ncol(X)
     if (!is.null(sup_row)) X$Aceptabilidad[sup_row] <- mean(m, na.rm = TRUE)
   }
-  FactoMineR::CA(X, row.sup = sup_row, quanti.sup = sup_q, graph = FALSE, ncp = 5)
+  r <- FactoMineR::CA(X, row.sup = sup_row, quanti.sup = sup_q, graph = FALSE, ncp = 5)
+  attr(r, "todos") <- todos
+  r
 }
 
 # ---------------------------------------------------------------- aceptabilidad

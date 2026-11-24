@@ -78,6 +78,7 @@ ui <- page_navbar(
         checkboxInput("ca_ideal", "Mostrar el producto ideal (fila suplementaria)", TRUE),
         checkboxInput("ca_agrado", "Mostrar la dirección de la aceptabilidad (variable suplementaria)", TRUE),
         ayuda("Análisis de correspondencias (FactoMineR::CA) sobre la tabla de frecuencias, como recomiendan Meyners y Castura. El ideal y la aceptabilidad no modifican el mapa: se proyectan."),
+        uiOutput("u_todos"),
         hr(), h6("Inercia por dimensión"), tableOutput("t_inercia"), uiOutput("u_chi")))),
 
   nav_panel("Penalidades", icon = icon("arrow-trend-down"),
@@ -190,6 +191,8 @@ server <- function(input, output, session) {
     validate(need(!inherits(r, "error"), if (inherits(r, "error")) conditionMessage(r) else "")); r })
   g_c <- reactive({ m <- ca(); validate(need(max(dims()) <= ncol(m$row$coord), "No hay tantas dimensiones.")); g_ca(m, dims()) })
   output$p_ca <- renderPlot(g_c(), res = 100)
+  output$u_todos <- renderUI(if (isTRUE(attr(ca(), "todos"))) div(class = "alert alert-warning small mt-2",
+    "Todavía ningún término discrimina entre productos (Cochran p < 0,05; suele pasar con pocos consumidores): el mapa usa todos los términos marcados."))
   output$t_inercia <- renderTable({ e <- ca()$eig; stats::setNames(data.frame(seq_len(nrow(e)), round(e[, 2], 1)), c("Dimensión", "%"))[seq_len(min(5, nrow(e))), ] })
   output$u_chi <- renderUI({ m <- ca(); x <- frecuencias(A())[, rownames(m$col$coord), drop = FALSE]
     ch <- suppressWarnings(stats::chisq.test(as.matrix(x)))

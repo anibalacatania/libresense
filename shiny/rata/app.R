@@ -88,6 +88,7 @@ ui <- page_navbar(
         sliderInput("nboot", "Elipses: paneles simulados", 100, 1000, 300, step = 100),
         actionButton("calc_boot", "Calcular elipses de confianza", class = "btn-primary w-100"),
         ayuda("Remuestreo de panelistas (como SensoMineR::panellipse). Productos con elipses que no se superponen fueron diferenciados por el panel."),
+        uiOutput("u_todos"),
         hr(), h6("Inercia por dimensión"), tableOutput("t_inercia"))),
     layout_columns(col_widths = c(6, 6),
       tarjeta("Correlación de cada descriptor con las dimensiones", DTOutput("t_cor")),
@@ -207,6 +208,8 @@ server <- function(input, output, session) {
     withProgress(message = "Simulando paneles…", elipses(e$A, e$pca, e$B, e$d)) })
   g_pc <- reactive({ m <- pca(); validate(need(max(dims()) <= ncol(m$ind$coord), "No hay tantas dimensiones.")); g_pca(m, dims(), cla()$cl, bt()) })
   output$p_pca <- renderPlot(g_pc(), res = 100)
+  output$u_todos <- renderUI(if (isTRUE(attr(pca(), "todos"))) div(class = "alert alert-warning small mt-2",
+    "Todavía ningún descriptor discrimina con ese umbral (suele pasar con pocos panelistas): el mapa usa todos los descriptores marcados."))
   output$t_inercia <- renderTable({ e <- pca()$eig; data.frame(`Dimensión` = seq_len(min(5, nrow(e))), `%` = round(e[seq_len(min(5, nrow(e))), 2], 1), check.names = FALSE) })
   output$t_cor <- renderDT(datatable(round(as.data.frame(pca()$var$cor[, seq_len(min(3, ncol(pca()$var$cor))), drop = FALSE]), 3), options = list(dom = "t", pageLength = 50)))
   plot_arbol <- function() { h <- cla(); plot(h$hc, main = "", xlab = "", sub = "", ylab = "Altura (Ward)"); stats::rect.hclust(h$hc, k = length(unique(h$cl)), border = col_n(length(unique(h$cl)))) }

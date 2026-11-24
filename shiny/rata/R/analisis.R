@@ -136,10 +136,17 @@ cochran <- function(A, ajuste = "none") {
 
 # ---------------------------------------------------------------- mapas
 correr_pca <- function(A, R, solo_sig = TRUE, umbral = 0.05) {
-  atrs <- A$usados
-  if (solo_sig) atrs <- atrs[vapply(atrs, function(a) isTRUE(R[[a]]$an$p < umbral), TRUE)]
-  if (length(atrs) < 2 || length(A$productos) < 3) stop("El mapa necesita al menos 3 productos y 2 descriptores", if (solo_sig) " que discriminen" else "", ".")
-  FactoMineR::PCA(as.data.frame(matriz_medias(A, R, atrs), check.names = FALSE), scale.unit = TRUE, graph = FALSE, ncp = 5)
+  atrs <- A$usados; todos <- FALSE
+  if (solo_sig) {
+    sig <- atrs[vapply(atrs, function(a) isTRUE(R[[a]]$an$p < umbral), TRUE)]
+    # con pocos panelistas puede que ninguno discrimine todavía: se usan todos y se avisa
+    if (length(sig) >= 2) atrs <- sig else todos <- TRUE
+  }
+  if (length(A$productos) < 3) stop("El mapa necesita al menos 3 productos con respuestas.")
+  if (length(atrs) < 2) stop("El mapa necesita al menos 2 descriptores marcados en algún producto.")
+  r <- FactoMineR::PCA(as.data.frame(matriz_medias(A, R, atrs), check.names = FALSE), scale.unit = TRUE, graph = FALSE, ncp = 5)
+  attr(r, "todos") <- todos
+  r
 }
 
 # elipses de confianza por remuestreo de panelistas (como SensoMineR::panellipse): se sortean panelistas con
