@@ -117,6 +117,7 @@ rsconnect::deployApp(file.path(d, "libresense-main/shiny/rata"),        appName 
 <table>
   <tr><th style="width:30%">Opción</th><th>Qué hace</th></tr>
   <tr><td><b>Link directo y código QR</b></td><td>Dirección que abre ese estudio sin pasar por la lista, y su código QR (descargable como imagen o en una hoja para imprimir).</td></tr>
+  <tr><td><b>Código de acceso</b></td><td>Pedir (o dejar de pedir) un código para entrar al estudio, verlo y cambiarlo.</td></tr>
   <tr><td><b>Cerrar / reabrir estudio</b></td><td>Cerrado: no aparece a los panelistas y no acepta respuestas. Los datos se conservan.</td></tr>
   <tr><td><b>Nombre</b></td><td>Cambia el nombre que ven los panelistas.</td></tr>
   <tr><td><b>Borrar los datos (empezar de cero)</b></td><td>Borra todas las respuestas y el progreso, pero deja el estudio con su diseño y sus códigos. Hay que escribir BORRAR para confirmar. Los dispositivos de los panelistas también se reinician.</td></tr>
@@ -139,6 +140,8 @@ de sobra para un laboratorio (cada muestra evaluada es una escritura). El límit
 <h1 id="c15"><span class="num">15</span>Preguntas frecuentes</h1>
 <h4>Un panelista no ve el estudio.</h4>
 <p>Revisá que esté <b>activo</b> (Configuración). Si lo tenía abierto desde antes, que recargue la página. Si hay varios estudios activos, que elija el correcto, o mandale el link directo.</p>
+<h4>Un panelista dice que el código no funciona.</h4>
+<p>Revisá en Configuración el código vigente (si lo cambiaste, el viejo deja de servir). Se escriben sin importar mayúsculas ni espacios; los caracteres que se confunden (0/O, 1/I/L) no se usan en los códigos que propone la app.</p>
 <h4>Un panelista dice que se le cortó internet.</h4>
 <p>Puede seguir: las respuestas quedan en el dispositivo y se suben solas. Que no borre los datos del navegador ni cambie de navegador hasta que el indicador diga “Todo guardado en la nube”.</p>
 <h4>Un panelista eligió el número equivocado.</h4>
