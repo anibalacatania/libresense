@@ -7,6 +7,8 @@ rules_version = '2';
 // - Administradores (rol "admin"): crean estudios y solo pueden ver y modificar los suyos (campo "dueno").
 //   El administrador total puede además compartir un estudio con administradores puntuales (campo "compartido"):
 //   esos lo pueden ver (diseño, respuestas, análisis) pero no modificar ni borrar.
+// - Código de acceso opcional: el estudio guarda solo el hash (accesoHash) de "<id>|<código>"; el código queda en
+//   privado/acceso. Si el estudio tiene código, una respuesta solo se acepta si trae el código correcto.
 // - El primer administrador se registra solo, una única vez (meta/setup), como administrador total.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -40,9 +42,13 @@ service cloud.firestore {
     function estudioActivo(e) {
       return get(/databases/$(database)/documents/estudios/$(e)).data.activo == true;
     }
+    function codigoOk(e) {
+      let h = get(/databases/$(database)/documents/estudios/$(e)).data.get('accesoHash', '');
+      return h == '' || hashing.sha256(e + '|' + request.resource.data.get('codigo', '')).toBase64() == h;
+    }
     function respuestaValida(r) {
       let d = request.resource.data;
-      return d.keys().hasOnly(['Sesion', 'Valuador', 'Orden', 'CodigoProducto', 'valores', 'ts', 'tsCliente', 'def'])
+      return d.keys().hasOnly(['Sesion', 'Valuador', 'Orden', 'CodigoProducto', 'valores', 'ts', 'tsCliente', 'def', 'codigo'])
         && d.keys().hasAll(['Sesion', 'Valuador', 'Orden', 'CodigoProducto', 'valores', 'ts'])
         && d.Sesion is string && d.Sesion.size() <= 20
         && d.Valuador is string && d.Valuador.size() <= 20
@@ -50,6 +56,7 @@ service cloud.firestore {
         && d.CodigoProducto is string && d.CodigoProducto.size() <= 10
         && d.valores is map && d.valores.size() <= 300
         && (!('def' in d) || (d.def is map && d.def.size() <= 300))
+        && (!('codigo' in d) || (d.codigo is string && d.codigo.size() <= 12))
         && d.ts == request.time
         && r == d.Valuador + '_' + d.Sesion + '_' + string(d.Orden);
     }
@@ -95,7 +102,7 @@ service cloud.firestore {
       match /respuestas/{r} {
         allow read: if puedeLeer(e);
         allow delete: if puedeVer(e);
-        allow create, update: if estudioActivo(e) && respuestaValida(r);
+        allow create, update: if estudioActivo(e) && respuestaValida(r) && codigoOk(e);
       }
       match /progreso/{v} {
         allow read: if true;

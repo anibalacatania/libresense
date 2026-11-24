@@ -21,11 +21,16 @@ const puede = eid => { const e = g('estudios/' + eid); return esSuper() || (esAd
 const leer = eid => { const e = g('estudios/' + eid); return puede(eid) || (esAdmin() && e && (e.compartido || []).includes(st.usuario.email)); };
 const denegar = () => { const e = new Error('Missing or insufficient permissions.'); e.code = 'permission-denied'; throw e; };
 
+import { hashAcceso, normalizarCodigo } from './acceso.js';
 export async function iniciar() { await dormir(5); }
+const codigos = {};
+export const fijarCodigo = (eid, c) => { if (c) codigos[eid] = normalizarCodigo(c); else delete codigos[eid]; };
+// como las reglas: si el estudio pide código, la respuesta tiene que traer el correcto
+const codigoOk = (eid, est) => !est.accesoHash || (codigos[eid] && hashAcceso(eid, codigos[eid]) === est.accesoHash);
 
 const limpiar = (id, d) => ({ id, nombre: d.nombre, tecnica: d.tecnica || 'descriptiva', activo: !!d.activo,
   atributos: d.atributos || [], sesiones: d.sesiones || [], panelistas: d.panelistas || [], creado: d.creado || null,
-  estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, sorting: d.sorting || null, ordenFijo: !!d.ordenFijo, compartido: d.compartido || [], reinicio: d.reinicio || 0, dueno: d.dueno || '' });
+  estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, sorting: d.sorting || null, ordenFijo: !!d.ordenFijo, compartido: d.compartido || [], accesoHash: d.accesoHash || '', reinicio: d.reinicio || 0, dueno: d.dueno || '' });
 
 export async function estudiosActivos() {
   await dormir(st.latencia);
@@ -53,7 +58,8 @@ export function guardarRespuesta(eid, r) {
     if (!est || !est.activo) denegar();
     const ks = Object.keys(r).sort().join();
     if (ks !== 'CodigoProducto,Orden,Sesion,Valuador,valores') denegar();
-    s(`estudios/${eid}/respuestas/${r.Valuador}_${r.Sesion}_${r.Orden}`, { ...r, ts: new Date().toISOString() });
+    if (!codigoOk(eid, est)) denegar();
+    s(`estudios/${eid}/respuestas/${r.Valuador}_${r.Sesion}_${r.Orden}`, { ...r, ...(codigos[eid] ? { codigo: codigos[eid] } : {}), ts: new Date().toISOString() });
     const p = g(`estudios/${eid}/progreso/${r.Valuador}`) || {};
     p[r.Sesion] = [...new Set([...(p[r.Sesion] || []), r.Orden])];
     s(`estudios/${eid}/progreso/${r.Valuador}`, p);
@@ -66,7 +72,7 @@ export function guardarIdeal(eid, { Sesion, Valuador, valores }) {
   return (async () => {
     await dormir(st.latencia);
     const est = g(`estudios/${eid}`);
-    if (!est || !est.activo) denegar();
+    if (!est || !est.activo || !codigoOk(eid, est)) denegar();
     s(`estudios/${eid}/respuestas/${Valuador}_${Sesion}_${ORDEN_IDEAL}`, { Sesion, Valuador, Orden: ORDEN_IDEAL, CodigoProducto: 'IDEAL', valores, ts: new Date().toISOString() });
     const p = g(`estudios/${eid}/progreso/${Valuador}`) || {};
     p._ideal = [...new Set([...(p._ideal || []), Sesion])];
@@ -102,11 +108,19 @@ export async function crearEstudio(est) {
   if (!esAdmin()) denegar();
   const id = 'est' + (++n) + '_' + Date.now().toString(36);
   s(`estudios/${id}`, { nombre: est.nombre, tecnica: est.tecnica || 'descriptiva', activo: true, atributos: est.atributos, estructura: est.estructura || null, escala: est.escala || 3, ordenAzar: !!est.ordenAzar, sugerencias: est.sugerencias || [], napping: est.napping || null, cata: est.cata || null, sorting: est.sorting || null, ordenFijo: !!est.ordenFijo,
-    sesiones: est.sesiones.map(x => ({ Sesion: x.Sesion, NMuestras: x.NMuestras })), panelistas: est.panelistas, creado: new Date().toISOString(), dueno: st.usuario.email });
+    sesiones: est.sesiones.map(x => ({ Sesion: x.Sesion, NMuestras: x.NMuestras })), panelistas: est.panelistas, creado: new Date().toISOString(), dueno: st.usuario.email,
+    ...(normalizarCodigo(est.codigoAcceso) ? { accesoHash: hashAcceso(id, est.codigoAcceso) } : {}) });
+  if (normalizarCodigo(est.codigoAcceso)) s(`estudios/${id}/privado/acceso`, { codigo: normalizarCodigo(est.codigoAcceso) });
   s(`estudios/${id}/publico/diseno`, { filas: est.diseno.map(d => `${d.Sesion}|${d.Valuador}|${d.Orden}|${d.CodigoProducto}`) });
   s(`estudios/${id}/privado/diseno`, { filas: est.diseno.map(d => `${d.Sesion}|${d.Valuador}|${d.Orden}|${d.CodigoProducto}|${d.NombreProducto}|${d.Rep}`),
     sesiones: est.sesiones.map(x => ({ Sesion: x.Sesion, Vinos: x.Vinos })), parametros: est.parametros || {} });
   return id;
+}
+export async function leerCodigoAcceso(eid) { if (!leer(eid)) denegar(); return (g(`estudios/${eid}/privado/acceso`) || {}).codigo || ''; }
+export async function cambiarCodigoAcceso(eid, codigo) {
+  if (!puede(eid)) denegar(); const c = normalizarCodigo(codigo), e = g('estudios/' + eid);
+  if (c) { s('estudios/' + eid, { ...e, accesoHash: hashAcceso(eid, c) }); s(`estudios/${eid}/privado/acceso`, { codigo: c }); }
+  else { const { accesoHash, ...resto } = e; s('estudios/' + eid, resto); del(`estudios/${eid}/privado/acceso`); }
 }
 export async function actualizarEstudio(eid, c) { if (!puede(eid) || ('compartido' in c && !esSuper())) denegar(); s('estudios/' + eid, { ...g('estudios/' + eid), ...c }); }
 export async function disenoPrivado(eid) {
@@ -136,7 +150,7 @@ export function guardarFlash(eid, { Sesion, Valuador, muestras, atributos, def }
   return (async () => {
     await dormir(st.latencia);
     const est = g(`estudios/${eid}`);
-    if (!est || !est.activo) denegar();
+    if (!est || !est.activo || !codigoOk(eid, est)) denegar();
     for (const m of muestras) {
       const d = { Sesion, Valuador, Orden: m.Orden, CodigoProducto: m.CodigoProducto, valores: m.valores, ts: new Date().toISOString() };
       const dd = m.def || def; if (dd && Object.keys(dd).length) d.def = dd;

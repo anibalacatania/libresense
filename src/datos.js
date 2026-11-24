@@ -14,8 +14,9 @@ import { initializeApp } from 'firebase/app';
 import {
   initializeFirestore, persistentLocalCache, persistentSingleTabManager, memoryLocalCache,
   collection, doc, getDoc, getDocs, setDoc, onSnapshot, query, where, writeBatch,
-  arrayUnion, serverTimestamp, getCountFromServer, updateDoc,
+  arrayUnion, serverTimestamp, getCountFromServer, updateDoc, deleteField,
 } from 'firebase/firestore';
+import { hashAcceso, normalizarCodigo } from './acceso.js';
 // El inicio de sesión (firebase/auth) solo lo usa el administrador: se carga aparte, a pedido,
 // así la app de los panelistas es más liviana.
 let db, auth, app, A, urlShiny = null, urlShinyNapping = null, urlShinyCata = null, urlShinySorting = null, urlShinyRata = null;
@@ -80,11 +81,16 @@ export function suscribirPendientes(cb) { oyentes.add(cb); cb(pendientes); retur
 
 // Guarda una muestra. Se escribe en el dispositivo al instante y se sube sola cuando hay conexión.
 // Una corrección (misma muestra) sobrescribe el mismo documento: no hay duplicados.
+// código de acceso que ingresó el panelista (si el estudio lo pide): viaja con cada respuesta y lo controlan las reglas
+const codigos = {};
+export const fijarCodigo = (eid, c) => { if (c) codigos[eid] = normalizarCodigo(c); else delete codigos[eid]; };
+const conCodigo = (eid, d) => (codigos[eid] ? { ...d, codigo: codigos[eid] } : d);
+
 export function guardarRespuesta(eid, { Sesion, Valuador, Orden, CodigoProducto, valores }) {
   const b = writeBatch(db);
-  b.set(ses(eid, 'respuestas', `${Valuador}_${Sesion}_${Orden}`), {
+  b.set(ses(eid, 'respuestas', `${Valuador}_${Sesion}_${Orden}`), conCodigo(eid, {
     Sesion, Valuador, Orden, CodigoProducto, valores, ts: serverTimestamp(), tsCliente: new Date().toISOString(),
-  });
+  }));
   b.set(ses(eid, 'progreso', Valuador), { [Sesion]: arrayUnion(Orden) }, { merge: true });
   pendientes++; avisar();
   return b.commit().finally(() => { pendientes--; avisar(); });
@@ -95,9 +101,9 @@ export function guardarRespuesta(eid, { Sesion, Valuador, Orden, CodigoProducto,
 export const ORDEN_IDEAL = 100;
 export function guardarIdeal(eid, { Sesion, Valuador, valores }) {
   const b = writeBatch(db);
-  b.set(ses(eid, 'respuestas', `${Valuador}_${Sesion}_${ORDEN_IDEAL}`), {
+  b.set(ses(eid, 'respuestas', `${Valuador}_${Sesion}_${ORDEN_IDEAL}`), conCodigo(eid, {
     Sesion, Valuador, Orden: ORDEN_IDEAL, CodigoProducto: 'IDEAL', valores, ts: serverTimestamp(), tsCliente: new Date().toISOString(),
-  });
+  }));
   b.set(ses(eid, 'progreso', Valuador), { _ideal: arrayUnion(Sesion) }, { merge: true });
   pendientes++; avisar();
   return b.commit().finally(() => { pendientes--; avisar(); });
@@ -112,7 +118,7 @@ export function guardarFlash(eid, { Sesion, Valuador, muestras, atributos, def }
       ts: serverTimestamp(), tsCliente: new Date().toISOString() };
     const dd = m.def || def;   // def por muestra (Napping: palabras) o común (Perfil Flash: definiciones)
     if (dd && Object.keys(dd).length) doc0.def = dd;
-    b.set(ses(eid, 'respuestas', `${Valuador}_${Sesion}_${m.Orden}`), doc0);
+    b.set(ses(eid, 'respuestas', `${Valuador}_${Sesion}_${m.Orden}`), conCodigo(eid, doc0));
   }
   b.set(ses(eid, 'progreso', Valuador), { [Sesion]: arrayUnion(...muestras.map(m => m.Orden)), _atributos: atributos }, { merge: true });
   pendientes++; avisar();
@@ -184,7 +190,7 @@ function limpiarEstudio(d) {
   return {
     nombre: d.nombre || 'Estudio', tecnica: d.tecnica || 'descriptiva', activo: !!d.activo,
     atributos: d.atributos || [], sesiones: d.sesiones || [], panelistas: d.panelistas || [],
-    estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, sorting: d.sorting || null, ordenFijo: !!d.ordenFijo, compartido: d.compartido || [], reinicio: d.reinicio || 0, dueno: d.dueno || '',
+    estructura: d.estructura || null, escala: d.escala || 3, ordenAzar: !!d.ordenAzar, sugerencias: d.sugerencias || [], napping: d.napping || null, cata: d.cata || null, sorting: d.sorting || null, ordenFijo: !!d.ordenFijo, compartido: d.compartido || [], accesoHash: d.accesoHash || '', reinicio: d.reinicio || 0, dueno: d.dueno || '',
     creado: d.creado && d.creado.toDate ? d.creado.toDate().toISOString() : null,
   };
 }
@@ -219,14 +225,25 @@ export async function crearEstudio(est) {
   const ref = doc(collection(db, 'estudios'));
   const d = docsDiseno(est);
   const b = writeBatch(db);
-  b.set(ref, { ...d.estudio, activo: true, creado: serverTimestamp(), dueno: auth.currentUser.email });
+  const codigo = normalizarCodigo(est.codigoAcceso);
+  b.set(ref, { ...d.estudio, activo: true, creado: serverTimestamp(), dueno: auth.currentUser.email, ...(codigo ? { accesoHash: hashAcceso(ref.id, codigo) } : {}) });
   b.set(doc(db, 'estudios', ref.id, 'publico', 'diseno'), d.publico);
   b.set(doc(db, 'estudios', ref.id, 'privado', 'diseno'), d.privado);
+  if (codigo) b.set(doc(db, 'estudios', ref.id, 'privado', 'acceso'), { codigo });
   await b.commit();
   return ref.id;
 }
 
 export async function actualizarEstudio(eid, campos) { await updateDoc(ses(eid), campos); }
+
+// código de acceso (administración): leerlo, ponerlo o sacarlo (null)
+export async function leerCodigoAcceso(eid) { const d = await getDoc(ses(eid, 'privado', 'acceso')); return d.exists() ? d.data().codigo || '' : ''; }
+export async function cambiarCodigoAcceso(eid, codigo) {
+  const c = normalizarCodigo(codigo), b = writeBatch(db);
+  if (c) { b.update(ses(eid), { accesoHash: hashAcceso(eid, c) }); b.set(ses(eid, 'privado', 'acceso'), { codigo: c }); }
+  else { b.update(ses(eid), { accesoHash: deleteField() }); b.delete(ses(eid, 'privado', 'acceso')); }
+  await b.commit();
+}
 
 export async function disenoPrivado(eid) {
   const d = await getDoc(ses(eid, 'privado', 'diseno'));

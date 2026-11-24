@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import * as datos from 'datos';
 import { ordenNatural, tamaniosSesiones, generarDiseno, generarDisenoFlash, generarDisenoFijo, generarDisenoNapFijo, LETRAS } from './diseno.js';
 import { GUSTO, HEDONICA, analizarCata } from './cata.js';
+import { codigoCorrecto, normalizarCodigo, generarCodigo } from './acceso.js';
 import { hojasSorting, coocurrencias, mdsSorting, palabrasSorting, palabrasEnMapa, grupos as gruposSorting } from './sorting.js';
 import { TECNICAS, nombreTecnica, palabraLista, etiquetasRata, parsearDescriptores, bloquesDe, rangosDesdePosiciones, HOJAS, claveX, claveY } from './tecnicas.js';
 import { analizar, afm } from './analisis.js';
@@ -86,6 +87,11 @@ function PanelApp() {
   const idealHecho = idealLocal || !!(progreso && progreso._ideal && progreso._ideal.length);
   const claves = conGusto ? [GUSTO, ...atributos] : atributos;
   const bloques = useMemo(() => (estudio ? bloquesDe(estudio, `${eid}|${valuador}`) : []), [estudio, eid, valuador]);
+  // código de acceso: si el estudio lo pide, se ingresa una vez y queda recordado en el dispositivo
+  const [, setAccesoTick] = useState(0);
+  const codGuardado = estudio && estudio.accesoHash ? LS.get('pf_acc_' + eid, '') : '';
+  const accesoOk = !estudio || !estudio.accesoHash || (!!codGuardado && codigoCorrecto(estudio, codGuardado));
+  if (estudio) datos.fijarCodigo(eid, estudio.accesoHash && accesoOk ? codGuardado : null);
 
   const elegirEstudio = (e) => {
     setEid(e.id); setVista('inicio'); setValuador('');
@@ -216,12 +222,17 @@ function PanelApp() {
               <button key={e.id} onClick={() => elegirEstudio(e)}
                 className="w-full text-left bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl p-4">
                 <p className="font-bold text-lg">{e.nombre}</p>
-                <p className="text-sm text-purple-100">{(TECNICAS[e.tecnica] || TECNICAS.descriptiva).corto} · {e.sesiones.length} sesiones · {e.panelistas.length} panelistas</p>
+                <p className="text-sm text-purple-100">{(TECNICAS[e.tecnica] || TECNICAS.descriptiva).corto} · {e.sesiones.length} sesiones · {e.panelistas.length} panelistas{e.accesoHash ? ' · 🔒 con código' : ''}</p>
               </button>))}
             </div>}
         <p className="text-center mt-5"><a href={MANUAL} target="_blank" rel="noopener" className="text-xs text-gray-400 hover:text-purple-600 hover:underline">Manual de uso (PDF)</a></p>
       </Tarjeta>
     );
+  }
+
+  if (estudio.accesoHash && !accesoOk) {
+    return <PantallaCodigo estudio={estudio} volver={unicoEstudio ? null : () => setVista('estudios')}
+      ok={c => { LS.set('pf_acc_' + eid, normalizarCodigo(c)); datos.fijarCodigo(eid, c); setAccesoTick(t => t + 1); }} />;
   }
 
   if (vista === 'inicio') {
@@ -421,6 +432,30 @@ function PanelApp() {
         </div>
       </div>
     </div>
+  );
+}
+
+// ---- código de acceso del estudio (como la contraseña de una reunión de Zoom)
+function PantallaCodigo({ estudio, ok, volver }) {
+  const [txt, setTxt] = useState('');
+  const [error, setError] = useState(false);
+  const probar = () => { if (codigoCorrecto(estudio, txt)) ok(txt); else setError(true); };
+  return (
+    <Tarjeta>
+      <div className="text-center mb-5">
+        <div className="w-12 h-12 mx-auto text-purple-600 mb-3"><Lock/></div>
+        <h1 className="text-2xl font-bold text-gray-800 mb-1">{estudio.nombre}</h1>
+        <p className="text-gray-600">Este estudio pide un código para entrar. Pedíselo a quien coordina la evaluación.</p>
+      </div>
+      <form onSubmit={e => { e.preventDefault(); probar(); }}>
+        <input value={txt} onChange={e => { setTxt(e.target.value); setError(false); }} autoFocus autoCapitalize="characters" autoComplete="off" spellCheck={false}
+          placeholder="Código" aria-label="Código de acceso"
+          className={`w-full text-center text-3xl font-black tracking-[0.3em] uppercase border-2 rounded-xl py-3 outline-none ${error ? 'border-red-400' : 'border-gray-200 focus:border-purple-500'}`} />
+        {error && <p className="text-sm text-red-600 text-center mt-2">Código incorrecto. Revisalo y probá de nuevo.</p>}
+        <button type="submit" disabled={!normalizarCodigo(txt)} className="w-full mt-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-3 rounded-lg disabled:opacity-40">Entrar</button>
+      </form>
+      {volver && <p className="text-center mt-4"><button onClick={volver} className="text-sm text-purple-700 hover:underline">← Otro estudio</button></p>}
+    </Tarjeta>
   );
 }
 
@@ -1461,7 +1496,8 @@ function ListaEstudios({ abrir, nuevo, rol, yo }) {
             <button key={e.id} onClick={() => abrir(e.id)} className="text-left border-2 border-gray-200 hover:border-purple-500 rounded-xl p-4">
               <div className="flex items-center justify-between">
                 <p className="font-bold text-lg text-gray-800">{e.nombre}</p>
-                <span className={`text-xs font-bold px-2 py-1 rounded-full ${e.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'}`}>{e.activo ? 'Activo' : 'Cerrado'}</span>
+                <span className="flex gap-1 items-center">{e.accesoHash && <span className="text-xs font-bold px-2 py-1 rounded-full bg-purple-100 text-purple-700" title="Pide código de acceso">🔒 Código</span>}
+                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${e.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'}`}>{e.activo ? 'Activo' : 'Cerrado'}</span></span>
               </div>
               <p className="text-sm text-gray-600"><span className={`text-xs font-bold px-2 py-0.5 rounded-full mr-1 ${(TECNICAS[e.tecnica] || TECNICAS.descriptiva).color}`}>{(TECNICAS[e.tecnica] || TECNICAS.descriptiva).corto}</span>
                 {e.sesiones.length} sesiones · {e.panelistas.length} panelistas · {e.tecnica === 'flash' ? 'descriptores propios' : e.tecnica === 'napping' ? 'mapeo' : e.tecnica === 'sorting' ? 'agrupamiento' : `${e.atributos.length} ${palabraLista(e.tecnica)}`}</p>
@@ -1498,6 +1534,8 @@ function NuevoEstudio({ creado, cancelar }) {
   const [conIdeal, setConIdeal] = useState(F.conIdeal ?? false);
   const [fijo, setFijo] = useState(F.fijo ?? false);
   const [prefijo, setPrefijo] = useState(F.prefijo ?? 'Vino');
+  const [pideCodigo, setPideCodigo] = useState(false);          // por defecto no se pide código
+  const [codigoNuevo, setCodigoNuevo] = useState(() => generarCodigo());
   useEffect(() => { LS.set('pf_form', { nombre, vinosTxt, porSesion, reps, nPan, parejo, semilla, atrTxt, tecnica, escala, ordenAzar, sugTxt, hoja, parcial, focosTxt, palabras, gusto, conIdeal, fijo, prefijo }); },
     [nombre, vinosTxt, porSesion, reps, nPan, parejo, semilla, atrTxt, tecnica, escala, ordenAzar, sugTxt, hoja, parcial, focosTxt, palabras, gusto, conIdeal, fijo, prefijo]);
   const [prev, setPrev] = useState(null);
@@ -1539,6 +1577,7 @@ function NuevoEstudio({ creado, cancelar }) {
     if (!juntas && desc.dup.length) return setMsg({ t: 'error', m: 'Hay descriptores repetidos en el mismo grupo: ' + desc.dup.join(', ') });
     if (!juntas && desc.malos.length) return setMsg({ t: 'error', m: 'Descriptores con el carácter | o demasiado largos: ' + desc.malos.join(', ') });
     if (esCata && atributos.some(a => a.toLowerCase() === GUSTO.toLowerCase())) return setMsg({ t: 'error', m: `“${GUSTO}” está reservado para la escala de agrado: usá otro nombre de término.` });
+    if (pideCodigo && normalizarCodigo(codigoNuevo).length < 4) return setMsg({ t: 'error', m: 'El código de acceso tiene que tener al menos 4 letras o números.' });
     if (atributos.length > 300) return setMsg({ t: 'error', m: 'Máximo 300 descriptores por estudio.' });
     if (!juntas && Number(porSesion) > vinos.length) return setMsg({ t: 'error', m: `No puede haber más vinos por sesión (${porSesion}) que vinos distintos (${vinos.length}): un vino no se repite dentro de una sesión.` });
     if (conFijo && esNap && vinos.length + duplicados.length > 26) return setMsg({ t: 'error', m: 'Con letras hay un máximo de 26 muestras (A–Z), duplicados incluidos.' });
@@ -1568,6 +1607,7 @@ function NuevoEstudio({ creado, cancelar }) {
         napping: esNap ? { hoja, tareas, palabras } : null,
         sorting: esSort ? { palabras } : null,
         ordenFijo: conFijo,
+        codigoAcceso: pideCodigo ? normalizarCodigo(codigoNuevo) : '',
         cata: esCata ? { gusto, ideal: conIdeal } : null,
         sesiones: prev.sesiones.map(s => ({ Sesion: s.Sesion, NMuestras: s.NMuestras, Vinos: s.Vinos })),
         panelistas: Array.from({ length: Number(nPan) }, (_, i) => 'V' + (i + 1)),
@@ -1773,6 +1813,19 @@ function NuevoEstudio({ creado, cancelar }) {
               Reduce el sesgo por posición en la lista.</span>
           </label>
             </>}
+          <div className={`rounded-lg p-3 ${pideCodigo ? 'bg-purple-50 border border-purple-200' : ''}`}>
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input type="checkbox" checked={pideCodigo} onChange={e => setPideCodigo(e.target.checked)} className="w-4 h-4 mt-0.5" />
+              <span><b>Pedir un código para entrar</b> (como en Zoom): los panelistas tienen que escribirlo antes de elegir su número. Útil cuando hay varios estudios abiertos.</span>
+            </label>
+            {pideCodigo && (
+              <div className="mt-2 ml-6 flex flex-wrap items-center gap-2">
+                <input value={codigoNuevo} onChange={e => setCodigoNuevo(normalizarCodigo(e.target.value))} maxLength={12}
+                  className="border-2 border-gray-200 rounded-lg px-3 py-1 w-36 font-mono font-bold tracking-widest uppercase" />
+                <button type="button" onClick={() => setCodigoNuevo(generarCodigo())} className="text-xs text-purple-700 underline">Otro código</button>
+                <span className="text-xs text-gray-500">Se puede cambiar o sacar después, en Configuración.</span>
+              </div>)}
+          </div>
           <button onClick={generar} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg">Generar vista previa</button>
           <Mensaje msg={msg}/>
         </div>
@@ -1892,6 +1945,8 @@ function Progreso({ eid, est }) {
 
 function Servicio({ est, priv }) {
   const [s, setS] = useState('');
+  const [codigoServ, setCodigoServ] = useState('');
+  useEffect(() => { if (est.accesoHash) datos.leerCodigoAcceso(est.id).then(setCodigoServ).catch(() => {}); }, [est.id, est.accesoHash]);
   if (!est.sesiones.length) return <p className="text-gray-500">El estudio no tiene sesiones.</p>;
   const sel = s || est.sesiones[0].Sesion;
   const ses = est.sesiones.find(x => x.Sesion === sel);
@@ -1909,7 +1964,8 @@ function Servicio({ est, priv }) {
       </div>
       <div className="flex items-start justify-between gap-4">
         <h2 className="text-xl font-bold mb-1">{est.nombre} — Sesión {sel} ({ses.NMuestras} muestras)</h2>
-        {est.id && <div className="text-center shrink-0"><QR link={`${urlBase()}?e=${est.id}`} className="w-24 h-24" /><p className="text-[10px] text-gray-500">Panelistas: escaneen para entrar</p></div>}
+        {est.id && <div className="text-center shrink-0"><QR link={`${urlBase()}?e=${est.id}`} className="w-24 h-24" /><p className="text-[10px] text-gray-500">Panelistas: escaneen para entrar</p>
+          {codigoServ && <p className="text-xs">Código: <b className="font-mono tracking-widest">{codigoServ}</b></p>}</div>}
       </div>
       {est.tecnica === 'flash' ? (
         <div>
@@ -3065,6 +3121,48 @@ res <- fast(f, sep.words = " ")                # FAST: MCA + análisis de las pa
   );
 }
 
+// Código de acceso del estudio (opcional; por defecto no se pide)
+function AccesoConfig({ eid, est, recargar }) {
+  const activo = !!est.accesoHash;
+  const [codigo, setCodigo] = useState('');
+  const [editando, setEditando] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [ocupado, setOcupado] = useState(false);
+  useEffect(() => { if (activo) datos.leerCodigoAcceso(eid).then(setCodigo).catch(() => {}); else setCodigo(''); }, [eid, activo]);
+  const guardar = async (nuevo, texto) => {
+    setOcupado(true); setMsg(null);
+    try { await datos.cambiarCodigoAcceso(eid, nuevo); await recargar(); setEditando(false); setMsg({ t: 'ok', m: texto }); }
+    catch (e) { setMsg({ t: 'error', m: textoError(e) }); }
+    finally { setOcupado(false); }
+  };
+  return (
+    <section>
+      <h3 className="font-bold text-gray-800 mb-1">Código de acceso</h3>
+      <p className="text-sm text-gray-600 mb-2">Como la contraseña de una reunión de Zoom: los panelistas lo escriben antes de elegir su número, y Firebase rechaza las respuestas que no lo traen.
+        Cada dispositivo lo pide una sola vez.</p>
+      {activo && !editando ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="font-mono font-black text-3xl tracking-[0.25em] bg-purple-50 border-2 border-purple-200 rounded-xl px-4 py-2 text-purple-800" data-codigo>{codigo || '…'}</span>
+          <button onClick={() => { setEditando(true); setCodigo(codigo || generarCodigo()); }} className={btn + ' bg-gray-100 hover:bg-gray-200'}>Cambiar</button>
+          <button disabled={ocupado} onClick={() => guardar(null, 'Listo: el estudio ya no pide código.')} className={btn + ' bg-gray-100 hover:bg-gray-200'}>Dejar de pedir código</button>
+        </div>
+      ) : !activo && !editando ? (
+        <button onClick={() => { setEditando(true); setCodigo(generarCodigo()); }} className={btn + ' bg-purple-600 hover:bg-purple-700 text-white'}>Pedir un código para entrar</button>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          <input value={codigo} onChange={e => setCodigo(normalizarCodigo(e.target.value))} maxLength={12} className="border-2 border-gray-200 rounded-lg px-3 py-2 w-40 font-mono font-bold tracking-widest uppercase" />
+          <button type="button" onClick={() => setCodigo(generarCodigo())} className="text-xs text-purple-700 underline">Otro código</button>
+          <button disabled={ocupado || normalizarCodigo(codigo).length < 4} onClick={() => guardar(codigo, 'Listo: el estudio pide el código ' + normalizarCodigo(codigo) + '.')}
+            className={btn + ' bg-purple-600 hover:bg-purple-700 text-white'}>{ocupado ? 'Guardando…' : 'Guardar'}</button>
+          <button onClick={() => { setEditando(false); if (activo) datos.leerCodigoAcceso(eid).then(setCodigo); }} className="text-sm text-gray-500 hover:underline">Cancelar</button>
+          {activo && <span className="text-xs text-amber-700 w-full">Al cambiarlo, los panelistas que ya habían entrado van a tener que escribir el código nuevo.</span>}
+        </div>
+      )}
+      <div className="mt-2"><Mensaje msg={msg}/></div>
+    </section>
+  );
+}
+
 // Compartir un estudio con administradores puntuales (solo el administrador total): lo ven, no lo modifican
 function Compartir({ eid, est, recargar }) {
   const [admins, setAdmins] = useState(null);
@@ -3106,7 +3204,7 @@ function QR({ link, className = 'w-40 h-40' }) {
   useEffect(() => { let vivo = true; svgQR(link).then(x => { if (vivo) setSvg(x); }).catch(e => console.error('QR', e)); return () => { vivo = false; }; }, [link]);
   return <div className={`bg-white ${className}`} data-qr={link} dangerouslySetInnerHTML={{ __html: svg }} />;
 }
-function CodigoQR({ link, nombre }) {
+function CodigoQR({ link, nombre, eid, conCodigo }) {
   const archivo = nombre.replace(/[^\w\-]+/g, '_') + '_QR.png';
   const bajar = async () => {
     const url = await (await libQR()).toDataURL(link, { width: 1024, margin: 2, errorCorrectionLevel: 'M' });
@@ -3115,13 +3213,14 @@ function CodigoQR({ link, nombre }) {
   const imprimir = async () => {
     const w = window.open('', '_blank'); if (!w) return;
     const svg = await svgQR(link);
+    const codigo = conCodigo ? await datos.leerCodigoAcceso(eid).catch(() => '') : '';
     const e = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>QR · ${e(nombre)}</title>
       <style>body{font-family:system-ui,sans-serif;text-align:center;padding:12mm;color:#1e1b4b}h1{font-size:30pt;margin:0 0 4mm}
       p{font-size:15pt;color:#4b5563;margin:2mm 0}.qr{width:120mm;height:120mm;margin:8mm auto}.l{font-size:10pt;color:#6b7280;word-break:break-all}
       .pie{margin-top:12mm;font-size:9pt;color:#9ca3af}</style></head><body>
       <h1>${e(nombre)}</h1><p>Escaneá el código con la cámara del celular para entrar a la evaluación</p>
-      <div class="qr">${svg}</div><p class="l">${e(link)}</p><p class="pie">LibreSense</p>
+      <div class="qr">${svg}</div>${codigo ? `<p style="font-size:18pt;color:#1e1b4b">Código de acceso: <b style="font-family:monospace;letter-spacing:4px;font-size:26pt">${e(codigo)}</b></p>` : ''}<p class="l">${e(link)}</p><p class="pie">LibreSense</p>
       <script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`);
     w.document.close();
   };
@@ -3162,8 +3261,9 @@ function Configuracion({ eid, est, rol, recargar, borrado }) {
           <button onClick={() => { navigator.clipboard && navigator.clipboard.writeText(link); setCopiado(true); setTimeout(() => setCopiado(false), 1500); }}
             className={btn + ' bg-gray-100 hover:bg-gray-200 whitespace-nowrap'}>{copiado ? '¡Copiado!' : 'Copiar'}</button>
         </div>
-        <CodigoQR link={link} nombre={est.nombre} />
+        <CodigoQR link={link} nombre={est.nombre} eid={eid} conCodigo={!!est.accesoHash} />
       </section>
+      <AccesoConfig eid={eid} est={est} recargar={recargar} />
       <section>
         <h3 className="font-bold text-gray-800 mb-2">Estado</h3>
         <p className="text-sm text-gray-600 mb-2">{est.activo ? 'Activo: aparece para los panelistas y acepta respuestas.' : 'Cerrado: no aparece para los panelistas y no acepta respuestas nuevas.'}</p>
