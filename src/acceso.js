@@ -1,7 +1,7 @@
 // Código de acceso opcional de un estudio (como la contraseña de una reunión de Zoom).
-// En el estudio (lectura pública) se guarda solo el hash SHA-256 de "<id del estudio>|<código>" en base64;
+// En el estudio (lectura pública) se guarda solo el hash SHA-256 de "<id del estudio>|<código>" en hexadecimal (minúsculas);
 // el código en claro queda en privado/acceso, que solo leen los administradores. Las reglas de Firebase calculan
-// el mismo hash (hashing.sha256(...).toBase64()) y rechazan las respuestas que no traen el código correcto.
+// el mismo hash (hashing.sha256(...).toHexString().lower()) y rechazan las respuestas que no traen el código correcto.
 
 // SHA-256 en JavaScript puro (sin crypto.subtle, que no existe fuera de https) → bytes
 function sha256(bytes) {
@@ -34,11 +34,11 @@ function sha256(bytes) {
   const out = new Uint8Array(32); H.forEach((x, i) => { out[4 * i] = x >>> 24; out[4 * i + 1] = (x >>> 16) & 0xff; out[4 * i + 2] = (x >>> 8) & 0xff; out[4 * i + 3] = x & 0xff; });
   return out;
 }
-const base64 = bytes => btoa(String.fromCharCode(...bytes));
+const hex = bytes => Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
 
 // el código se escribe sin importar mayúsculas ni espacios
 export const normalizarCodigo = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
-export const hashAcceso = (eid, codigo) => base64(sha256(new TextEncoder().encode(`${eid}|${normalizarCodigo(codigo)}`)));
+export const hashAcceso = (eid, codigo) => hex(sha256(new TextEncoder().encode(`${eid}|${normalizarCodigo(codigo)}`)));
 export const codigoCorrecto = (est, codigo) => !est.accesoHash || hashAcceso(est.id, codigo) === est.accesoHash;
 
 // código nuevo: 6 caracteres fáciles de dictar (sin 0/O, 1/I/L)

@@ -46,7 +46,7 @@ service cloud.firestore {
     }
     function codigoOk(e) {
       let h = get(/databases/$(database)/documents/estudios/$(e)).data.get('accesoHash', '');
-      return h == '' || hashing.sha256(e + '|' + request.resource.data.get('codigo', '')).toBase64() == h;
+      return h == '' || hashing.sha256(e + '|' + request.resource.data.get('codigo', '')).toHexString().lower() == h;
     }
     function respuestaValida(r) {
       let d = request.resource.data;
